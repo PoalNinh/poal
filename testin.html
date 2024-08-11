@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <title>Hóa đơn bán hàng</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @page {
+            margin: 0;
+            size: auto;
+        }
+
+
+        body {
+            background: rgb(204, 204, 204);
+            font-family: "Times New Roman", Times, serif;
+            margin: 0;
+            padding: 0;
+        }
+
+
+        #content {
+            background: white;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 10mm;
+            margin: 10mm auto;
+            box-shadow: 0 0 0.5cm rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .header-table {
+            width: 100%;
+        }
+
+        .title-cell {
+            width: 60%;
+            text-align: center;
+        }
+
+        #setup-print {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        #setup-print select,
+        #setup-print button {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        #setup-print button:last-child {
+            margin-bottom: 0;
+        }
+
+        .product-info-line {
+            margin-bottom: 5px;
+        }
+
+        .product-info-line strong {
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 1mm;
+            text-align: left;
+            font-size: 8pt;
+        }
+
+        h1 {
+            font-size: 12pt;
+            margin: 2mm 0;
+            text-align: center;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .product-name {
+            font-weight: bold;
+        }
+
+        .original-price {
+            text-decoration: line-through;
+        }
+
+        #setup-print {
+            position: fixed;
+            top: 10mm;
+            right: 10mm;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 2mm;
+            border-radius: 2mm;
+            box-shadow: 0 0 5mm rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        #setup-print select,
+        #setup-print button {
+            width: 100%;
+            margin-bottom: 2mm;
+            font-size: 8pt;
+        }
+
+        @media print {
+            #setup-print {
+                display: none;
+            }
+        }
+
+        body[data-paper-size^="thermal-"] {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body[data-paper-size="thermal-80"] #content {
+            width: 80mm;
+        }
+
+        body[data-paper-size="thermal-58"] #content {
+            width: 58mm;
+        }
+
+        body[data-paper-size^="thermal-"] .qr-cell,
+        body[data-paper-size^="thermal-"] .logo-cell {
+            display: none;
+        }
+
+        body[data-paper-size^="thermal-"] .title-cell {
+            width: 100%;
+        }
+
+        body[data-paper-size^="thermal-"] .responsive-table {
+            font-size: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="setup-print">
+        <select id="select-paper-size" class="form-control">
+            <option value="A4">A4</option>
+            <option value="A5">A5</option>
+            <option value="A6">A6</option>
+            <option value="A7">A7</option>
+            <option value="thermal-80">Máy in nhiệt 80mm</option>
+            <option value="thermal-58">Máy in nhiệt 58mm</option>
+        </select>
+
+        <button onclick="printDocument()" class="btn btn-info">
+            <i class="fa fa-print"></i> In
+        </button>
+        <button onclick="exportToPDF()" class="btn btn-primary">
+            <i class="fa fa-file-pdf"></i> Xuất PDF
+        </button>
+        <button onclick="" class="btn btn-primary">
+            <i class="fa fa-file-pdf"></i> In Ngay
+        </button>
+    </div>
+
+    <div id="content">
+        <h1 class="bold">HÓA ĐƠN BÁN HÀNG</h1>
+        <p class="center">Số HĐ: <span id="soHD"></span></p>
+        <p class="center">Ngày <span id="ngay"></span> tháng <span id="thang"></span> năm <span id="nam"></span></p>
+
+        <p>Khách hàng: <span id="tenKH"></span></p>
+        <p>SĐT: <span id="sdt"></span></p>
+        <p>Địa chỉ: <span id="diaChi"></span></p>
+
+        <table id="orderDetailsTable">
+            <thead>
+                <tr>
+                    <th>Đơn giá</th>
+                    <th>SL</th>
+                    <th class="right">Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody id="orderDetailsBody">
+            </tbody>
+        </table>
+
+        <table>
+            <tr>
+                <td colspan="2" class="bold">Tổng đơn:</td>
+                <td id="tongDon" class="right"></td>
+            </tr>
+            <tr>
+                <td colspan="2" class="bold">Giảm thêm:</td>
+                <td id="giamThem" class="right"></td>
+            </tr>
+            <tr>
+                <td colspan="2" class="bold">Thanh toán:</td>
+                <td id="thanhToan" class="right"></td>
+            </tr>
+            <tr>
+                <td colspan="2" class="bold">Phương thức:</td>
+                <td id="phuongThuc" class="right"></td>
+            </tr>
+            <tr>
+                <td colspan="2" class="bold">Khách đưa:</td>
+                <td id="khachDua" class="right"></td>
+            </tr>
+            <tr>
+                <td colspan="2" class="bold">Khách còn:</td>
+                <td id="khachCon" class="right"></td>
+            </tr>
+        </table>
+
+        <p class="center"><i>(<span id="bangChu"></span>)</i></p>
+    </div>
+
+    <script>
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+        }
+
+        function updateUI(data) {
+            document.getElementById('soHD').textContent = data.soHD;
+            document.getElementById('ngay').textContent = data.ngay;
+            document.getElementById('thang').textContent = data.thang;
+            document.getElementById('nam').textContent = data.nam;
+            document.getElementById('tenKH').textContent = data.tenKH;
+            document.getElementById('sdt').textContent = data.sdt;
+            document.getElementById('diaChi').textContent = data.diaChi;
+
+            const orderDetailsBody = document.getElementById('orderDetailsBody');
+            orderDetailsBody.innerHTML = '';
+            data.sanPham.forEach(sp => {
+                const row = orderDetailsBody.insertRow();
+                const cellDonGia = row.insertCell(0);
+                const cellSL = row.insertCell(1);
+                const cellThanhTien = row.insertCell(2);
+
+                cellDonGia.innerHTML = `
+                    <span class="product-name">${sp.ten}</span><br>
+                    ${formatCurrency(sp.giaBan)}<br>
+                    <span class="original-price">${formatCurrency(sp.giaGoc)}</span>
+                `;
+                cellSL.textContent = sp.soLuong;
+                cellThanhTien.textContent = formatCurrency(sp.thanhTien);
+                cellThanhTien.className = 'right';
+            });
+
+            document.getElementById('tongDon').textContent = formatCurrency(data.tongDon);
+            document.getElementById('giamThem').textContent = formatCurrency(data.giamThem);
+            document.getElementById('thanhToan').textContent = formatCurrency(data.thanhToan);
+            document.getElementById('phuongThuc').textContent = data.phuongThuc;
+            document.getElementById('khachDua').textContent = formatCurrency(data.khachDua);
+            document.getElementById('khachCon').textContent = formatCurrency(data.khachCon);
+            document.getElementById('bangChu').textContent = data.bangChu;
+        }
+
+        function updatePageFormat() {
+            const size = document.getElementById('select-paper-size').value;
+            document.body.setAttribute('data-paper-size', size);
+            adjustContentSize(size);
+            adjustFontSize(size);
+        }
+        function adjustContentSize(size) {
+            const content = document.getElementById('content');
+            let width, height;
+            switch (size) {
+                case 'A4': width = '210mm'; height = 'auto'; break;
+                case 'A5': width = '148mm'; height = 'auto'; break;
+                case 'A6': width = '105mm'; height = 'auto'; break;
+                case 'A7': width = '74mm'; height = 'auto'; break;
+                case 'thermal-80': width = '80mm'; height = 'auto'; break;
+                case 'thermal-58': width = '58mm'; height = 'auto'; break;
+                default: width = '210mm'; height = 'auto';
+            }
+
+            content.style.width = width;
+            content.style.minHeight = height !== 'auto' ? height : '0';
+            content.style.height = 'auto';
+            content.style.overflow = 'hidden';
+        }
+
+        function adjustFontSize(size) {
+            const content = document.getElementById('content');
+            let fontSize;
+            switch (size) {
+                case 'A4': fontSize = '12px'; break;
+                case 'A5': fontSize = '11px'; break;
+                case 'A6': fontSize = '10px'; break;
+                case 'A7': fontSize = '9px'; break;
+                case 'thermal-80': fontSize = '8px'; break;
+                case 'thermal-58': fontSize = '7px'; break;
+                default: fontSize = '12px';
+            }
+            content.style.fontSize = fontSize;
+        }
+        function printDocument() {
+            updatePageFormat();
+            window.print();
+        }
+
+        function exportToPDF() {
+            updatePageFormat();
+            const element = document.getElementById('content');
+            const size = document.getElementById('select-paper-size').value;
+
+            let format;
+            switch (size) {
+                case 'A4': format = 'a4'; break;
+                case 'A5': format = 'a5'; break;
+                case 'A6': format = 'a6'; break;
+                case 'A7': format = [74, 105]; break;
+                case 'thermal-80': format = [80, 'auto']; break;
+                case 'thermal-58': format = [58, 'auto']; break;
+                default: format = 'a4';
+            }
+
+            const opt = {
+                margin: 0,
+                filename: 'phieu_giat_trang_phuc.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    scrollY: -window.scrollY, // Thêm dòng này
+                    windowHeight: document.documentElement.offsetHeight // Và dòng này
+                },
+                jsPDF: { unit: 'mm', format: format, orientation: 'portrait' }
+            };
+
+            // Nếu chiều dài là 'auto', tính toán chiều dài dựa trên nội dung
+            if (Array.isArray(format) && format[1] === 'auto') {
+                const contentHeight = element.offsetHeight;
+                const scaleFactor = 25.4 / 96; // Chuyển đổi từ pixel sang mm
+                format[1] = contentHeight * scaleFactor;
+                // Thêm một chút dư để tránh cắt nội dung
+                format[1] += 5; // Thêm 5mm để an toàn
+            }
+
+            html2pdf().from(element).set(opt).save();
+        }
+
+
+        // Giả lập dữ liệu từ hình ảnh
+        const mockData = {
+            soHD: 'HD039813',
+            ngay: '09',
+            thang: '08',
+            nam: '2024',
+            tenKH: 'Vy',
+            sdt: '0343284375',
+            diaChi: '- -',
+            sanPham: [
+                {
+                    ten: 'Hàn Quốc 350',
+                    giaBan: 175000,
+                    giaGoc: 350000,
+                    soLuong: 1,
+                    thanhTien: 175000
+                },
+                {
+                    ten: 'Chemi loạn cao 1 61',
+                    giaBan: 672000,
+                    giaGoc: 840000,
+                    soLuong: 1,
+                    thanhTien: 672000
+                },
+                {
+                    ten: 'Chemi loạn cao 1 61',
+                    giaBan: 672000,
+                    giaGoc: 840000,
+                    soLuong: 1,
+                    thanhTien: 672000
+                },
+                {
+                    ten: 'Chemi loạn cao 1 61',
+                    giaBan: 672000,
+                    giaGoc: 840000,
+                    soLuong: 1,
+                    thanhTien: 672000
+                },
+                {
+                    ten: 'Chemi loạn cao 1 61',
+                    giaBan: 672000,
+                    giaGoc: 840000,
+                    soLuong: 1,
+                    thanhTien: 672000
+                },
+                {
+                    ten: 'Chemi loạn cao 1 61',
+                    giaBan: 672000,
+                    giaGoc: 840000,
+                    soLuong: 1,
+                    thanhTien: 672000
+                }
+            ],
+            tongDon: 847000,
+            giamThem: 0,
+            thanhToan: 847000,
+            phuongThuc: 'Chuyển khoản',
+            khachDua: 847000,
+            khachCon: 0,
+            bangChu: 'Tám trăm bốn mươi bảy nghìn đồng chẵn'
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            updateUI(mockData);
+            document.getElementById('select-paper-size').addEventListener('change', updatePageFormat);
+            updatePageFormat();
+        });
+    </script>
+</body>
+
+</html>
