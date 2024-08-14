@@ -327,21 +327,21 @@
         </select>
         <select id="accountSelect" class="form-control mb-2" style="display: none;" onchange="updateAccountInfo()">
             <option value="mb">MB: 7320012003 - Chủ TK: Ninh Văn Phước</option>
-            
+
         </select>
         <label for="printerIp">IP máy in:</label>
         <input type="text" id="printerIp" placeholder="Ví dụ: 192.168.1.100" class="form-control mb-2">
-        
+
         <label for="printerPort">Cổng máy in:</label>
         <input type="number" id="printerPort" placeholder="Ví dụ: 9100" class="form-control mb-2">
-        
+
         <button onclick="printDocument()" class="btn btn-info mb-2">
             <i class="fa fa-print"></i> In
         </button>
         <button onclick="exportToPDF()" class="btn btn-primary">
             <i class="fa fa-file-pdf"></i> Xuất PDF
         </button>
-      
+
     </div>
     <div id="content">
         <table class="header-table">
@@ -427,7 +427,7 @@
         </div>
     </div>
     <script>
-            // Vô hiệu hóa chuột phải
+        // Vô hiệu hóa chuột phải
         document.addEventListener('contextmenu', function (e) {
             e.preventDefault();
         }, false);
@@ -617,7 +617,7 @@
                 bankId = '970422';
                 accountNo = '7320012003';
                 accountName = 'Ninh Văn Phước';
-            } 
+            }
 
             const addInfo = `Thanh toan don hang ${document.getElementById('sodh').textContent}`;
             const template = 'compact';
@@ -720,10 +720,36 @@
             const printerPort = document.getElementById('printerPort').value;
 
             if (printerIp && printerPort) {
-                // Here you would implement the logic to send the print job to the specified IP and port
-                console.log(`Sending print job to ${printerIp}:${printerPort}`);
-                // This is where you'd integrate with a print server or API
-                alert(`Đang gửi lệnh in tới máy in tại ${printerIp}:${printerPort}`);
+                // Lấy nội dung cần in
+                const contentToPrint = document.getElementById('content').innerHTML;
+
+                // Tạo đối tượng dữ liệu để gửi đến máy chủ
+                const printData = {
+                    printerIp: printerIp,
+                    printerPort: printerPort,
+                    content: contentToPrint
+                };
+
+                // Gửi lệnh in đến máy chủ
+                fetch('/api/print', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(printData),
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert(`Lệnh in đã được gửi thành công tới máy in tại ${printerIp}:${printerPort}`);
+                        } else {
+                            alert(`Lỗi khi gửi lệnh in: ${data.message}`);
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Lỗi:', error);
+                        alert('Đã xảy ra lỗi khi gửi lệnh in. Vui lòng thử lại.');
+                    });
             } else {
                 // If IP or port is not specified, fall back to the browser's print dialog
                 window.print();
