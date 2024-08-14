@@ -718,6 +718,8 @@
             updatePageFormat();
             const printerIp = document.getElementById('printerIp').value;
             const printerPort = document.getElementById('printerPort').value;
+            const paperSize = document.getElementById('select-paper-size').value;
+            const orientation = document.getElementById('select-paper-orientation').value;
 
             if (printerIp && printerPort) {
                 // Lấy nội dung cần in
@@ -727,7 +729,9 @@
                 const printData = {
                     printerIp: printerIp,
                     printerPort: printerPort,
-                    content: contentToPrint
+                    content: contentToPrint,
+                    paperSize: paperSize,
+                    orientation: orientation
                 };
 
                 // Gửi lệnh in đến máy chủ
@@ -741,7 +745,7 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            alert(`Lệnh in đã được gửi thành công tới máy in tại ${printerIp}:${printerPort}`);
+                            alert(`Lệnh in đã được gửi thành công tới máy in tại ${printerIp}:${printerPort}\nKích thước giấy: ${paperSize}\nHướng in: ${orientation}`);
                         } else {
                             alert(`Lỗi khi gửi lệnh in: ${data.message}`);
                         }
@@ -751,10 +755,11 @@
                         alert('Đã xảy ra lỗi khi gửi lệnh in. Vui lòng thử lại.');
                     });
             } else {
-                // If IP or port is not specified, fall back to the browser's print dialog
+                // Nếu không có IP hoặc cổng, sử dụng hộp thoại in mặc định của trình duyệt
                 window.print();
             }
         }
+
         function getQRCodeSize() {
             const size = document.getElementById('select-paper-size').value;
             const contentWidth = document.getElementById('content').offsetWidth;
