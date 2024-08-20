@@ -260,11 +260,30 @@
             updateProductTable();
         }
 
+          function updateUI() {
+            document.getElementById('soChungThu').textContent = BAN_GIAO['Số chứng thư'] || '';
+            document.getElementById('soChungThuHeader').textContent = BAN_GIAO['Số chứng thư'];
+            document.getElementById('ngayChungThu').textContent = formatDate(BAN_GIAO['Ngày']);
+            updateProductTable();
+        }
+
         function updateProductTable() {
-            const tableBody = document.getElementById('orderDetailsBody');
-            tableBody.innerHTML = CT_BANGIAO.map((item, index) => `
+    const tableBody = document.getElementById('orderDetailsBody');
+    let html = CT_BANGIAO.map((item, index) => {
+        const mucValue = item['Mục'] || '';
+        // Kiểm tra nếu 'Mục' là một chữ cái đơn hoặc một chữ cái theo sau bởi dấu chấm
+        if (/^[a-z](\.)?$/i.test(mucValue.trim())) {
+            // Nếu 'Mục' có dạng "a", "b", "a.", "b.", v.v., merge các ô
+            return `
                 <tr>
-                    <td>${item['Mục'] || ''}</td>
+                    <th colspan="7">${mucValue} ${item['Tên tài sản'] || ''}</th>
+                </tr>
+            `;
+        } else {
+            // Nếu không, hiển thị bình thường
+            return `
+                <tr>
+                    <td>${mucValue}</td>
                     <td>${item['Tên tài sản'] || ''}</td>
                     <td>${item['Vị trí'] || ''}</td>
                     <td>${item['Đơn vị'] || ''}</td>
@@ -272,8 +291,12 @@
                     <td>${item['SL thực tế'] || ''}</td>
                     <td>${item['Ghi chú'] || ''}</td>
                 </tr>
-            `).join('');
+            `;
         }
+    }).join('');
+
+    tableBody.innerHTML = html;
+}
 
         document.addEventListener('DOMContentLoaded', function () {
             const urlParams = new URLSearchParams(window.location.search);
