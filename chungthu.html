@@ -157,10 +157,11 @@
             #printButton {
                 display: none;
             }
-        
+
             #exportWordButton {
                 display: none;
             }
+
             @page {
                 size: A4;
                 margin: 0;
@@ -172,16 +173,16 @@
         }
 
         #exportWordButton {
-    position: fixed;
-    top: 60px;
-    right: 20px;
-    padding: 10px 20px;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -263,7 +264,7 @@
             updateProductTable();
         }
 
-          function updateUI() {
+        function updateUI() {
             document.getElementById('soChungThu').textContent = BAN_GIAO['Số chứng thư'] || '';
             document.getElementById('soChungThuHeader').textContent = BAN_GIAO['Số chứng thư'];
             document.getElementById('ngayChungThu').textContent = formatDate(BAN_GIAO['Ngày']);
@@ -271,20 +272,20 @@
         }
 
         function updateProductTable() {
-    const tableBody = document.getElementById('orderDetailsBody');
-    let html = CT_BANGIAO.map((item, index) => {
-        const mucValue = item['Mục'] || '';
-        // Kiểm tra nếu 'Mục' là một chữ cái đơn hoặc một chữ cái theo sau bởi dấu chấm
-        if (/^[a-z](\.)?$/i.test(mucValue.trim())) {
-            // Nếu 'Mục' có dạng "a", "b", "a.", "b.", v.v., merge các ô
-            return `
+            const tableBody = document.getElementById('orderDetailsBody');
+            let html = CT_BANGIAO.map((item, index) => {
+                const mucValue = item['Mục'] || '';
+                // Kiểm tra nếu 'Mục' là một chữ cái đơn hoặc một chữ cái theo sau bởi dấu chấm
+                if (/^[a-z](\.)?$/i.test(mucValue.trim())) {
+                    // Nếu 'Mục' có dạng "a", "b", "a.", "b.", v.v., merge các ô
+                    return `
                 <tr>
                     <th colspan="7">${mucValue} ${item['Tên tài sản'] || ''}</th>
                 </tr>
             `;
-        } else {
-            // Nếu không, hiển thị bình thường
-            return `
+                } else {
+                    // Nếu không, hiển thị bình thường
+                    return `
                 <tr>
                     <td>${mucValue}</td>
                     <td>${item['Tên tài sản'] || ''}</td>
@@ -295,11 +296,11 @@
                     <td>${item['Ghi chú'] || ''}</td>
                 </tr>
             `;
-        }
-    }).join('');
+                }
+            }).join('');
 
-    tableBody.innerHTML = html;
-}
+            tableBody.innerHTML = html;
+        }
 
         document.addEventListener('DOMContentLoaded', function () {
             const urlParams = new URLSearchParams(window.location.search);
@@ -333,7 +334,7 @@
                 "xmlns:w='urn:schemas-microsoft-com:office:word' " +
                 "xmlns='http://www.w3.org/TR/REC-html40'>" +
                 "<head><meta charset='utf-8'><title>Export HTML to Word Document with JavaScript</title>" +
-                    `
+                `
                     <style>
         /* Giữ nguyên CSS từ phiên bản trước */
         html,
@@ -502,8 +503,8 @@
     </style>
                     
                     `
-                     +
-              
+                +
+
                 "</head><body>";
 
             var sourceHTML = header + document.getElementById("page-container").innerHTML;
@@ -517,7 +518,7 @@
             document.body.removeChild(fileDownload);
         }
     </script>
-    
+
 </body>
 
 </html>
