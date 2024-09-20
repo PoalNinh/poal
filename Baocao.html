@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thống kê công việc</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highcharts/10.3.3/highcharts.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<script>
+    tailwind.config = {
+        darkMode: 'class',
+        theme: {
+            extend: {
+                colors: {
+                    primary: '#3B82F6',
+                    secondary: '#10B981',
+                    accent: '#8B5CF6',
+                    warning: '#FBBF24',
+                    danger: '#EF4444',
+                }
+            }
+        }
+    }
+</script>
+
+<body class="bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+    <div class="fixed top-0 left-0 right-0 z-10">
+        <nav class="bg-white dark:bg-gray-800 shadow-md">
+            <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="flex items-center">
+                    <img src="https://static.utop.vn/backupblog/richtexteditor/top-7-quan-cafe-chill-nhat-quan-10-tha-ho-song-ao-2_1448722715_20220712.jpg" alt="WOWS Group"
+                        class="h-8 mr-4">
+                    <h1 class="text-2xl font-bold text-primary dark:text-white">Goal Shop</h1>
+                </div>
+                <button id="darkModeToggle"
+                    class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 transition-colors duration-300">
+                    <i class="fas fa-moon text-gray-800 dark:text-white"></i>
+                </button>
+            </div>
+        </nav>
+
+        <div class="bg-white dark:bg-gray-800 shadow-md">
+            <div class="container mx-auto px-4 py-3">
+                <h2 class="text-xl font-semibold mb-2 text-gray-800 dark:text-white">Bộ lọc</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <select id="employeeFilter"
+                        class="w-full p-2 border rounded-md bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary transition-all duration-300">
+                        <option value="">Nhân viên phụ trách</option>
+                    </select>
+                    <select id="dateRangeFilter"
+                        class="w-full p-2 border rounded-md bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary transition-all duration-300">
+                        <option value="">Chọn phạm vi ngày</option>
+                    </select>
+                    <select id="tableFilter"
+                        class="w-full p-2 border rounded-md bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-primary transition-all duration-300">
+                        <option value="">Chọn bàn</option>
+                    </select>
+                    <button id="resetFilters"
+                        class="w-full bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                        <i class="fas fa-sync-alt mr-2"></i>Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 mt-36">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-white">Tổng số hóa đơn</h3>
+                <p id="totalInvoices" class="text-3xl font-bold text-primary">0</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-white">Tổng doanh thu</h3>
+                <p id="totalRevenue" class="text-3xl font-bold text-secondary">0 ₫</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-white">Giảm giá trung bình</h3>
+                <p id="averageDiscount" class="text-3xl font-bold text-accent">0 ₫</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-white">VAT trung bình</h3>
+                <p id="averageVAT" class="text-3xl font-bold text-warning">0 ₫</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Doanh thu theo ngày</h3>
+                <div id="revenueChart" style="height: 300px;"></div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Top 5 nhân viên</h3>
+                <div id="employeeChart" style="height: 300px;"></div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Phân bố doanh thu theo ID Bàn</h3>
+                <div id="tableChart" style="height: 300px;"></div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Xu hướng doanh thu theo thời gian
+                </h3>
+                <div id="trendChart" style="height: 300px;"></div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Danh sách hóa đơn gần đây</h3>
+            <div class="mb-4">
+                <input type="text" id="invoiceSearch" placeholder="Tìm kiếm hóa đơn..."
+                    class="w-full p-2 border rounded-md">
+            </div>
+            <div class="overflow-x-auto">
+                <table id="recentInvoices" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                ID Hóa đơn
+                            </th>
+                            <th
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                Nhân viên
+                            </th>
+                            <th
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                Ngày
+                            </th>
+                            <th
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                Tổng tiền
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                        <!-- Table rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4 flex justify-between items-center">
+                <button id="prevPage" class="bg-primary text-white px-4 py-2 rounded-md">Trang trước</button>
+                <span id="pageInfo" class="text-gray-600 dark:text-gray-300"></span>
+                <button id="nextPage" class="bg-primary text-white px-4 py-2 rounded-md">Trang sau</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Existing JavaScript code...
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const htmlElement = document.documentElement;
+        const appId = 'ab00cc33-e1ce-4e9c-80a4-35feded6205b';
+        const accessKey = 'V2-Qrb6D-bpPkv-CGv51-VvzZn-VZnXb-9ePlp-SvHIM-Gs8kJ';
+        const region = 'www';
+
+        let allData = [];
+        let filteredData = [];
+        // Function to toggle dark mode
+        function toggleDarkMode() {
+            htmlElement.classList.toggle('dark');
+            updateDashboard(); // Assuming this function exists to update your charts
+
+            // Optional: Save the user's preference
+            const isDarkMode = htmlElement.classList.contains('dark');
+            localStorage.setItem('darkMode', isDarkMode);
+
+            // Update the icon
+            updateDarkModeIcon();
+        }
+
+        // Function to update the icon based on the current mode
+        function updateDarkModeIcon() {
+            const isDarkMode = htmlElement.classList.contains('dark');
+            darkModeToggle.innerHTML = isDarkMode
+                ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>'
+                : '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-800 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>';
+        }
+
+        // Add click event listener to the toggle button
+        darkModeToggle.addEventListener('click', toggleDarkMode);
+        function apiRequest(tableName, action, data) {
+            const apiUrl = `https://${region}.appsheet.com/api/v2/apps/${appId}/tables/${tableName}/Action`;
+            return fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'ApplicationAccessKey': accessKey,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    Action: action,
+                    Properties: {},
+                    ...data
+                })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("API response:", data);
+                    return data;
+                })
+                .catch(error => {
+                    console.error("Lỗi API:", error);
+                    throw error;
+                });
+        }
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+        }
+        function populateFilters() {
+            const employeeFilter = document.getElementById('employeeFilter');
+            const dateRangeFilter = document.getElementById('dateRangeFilter');
+            const tableFilter = document.getElementById('tableFilter');
+
+            // Populate employee filter
+            const employees = [...new Set(allData.map(invoice => invoice['Nhân viên']))];
+            employees.forEach(employee => {
+                const option = document.createElement('option');
+                option.value = employee;
+                option.textContent = employee;
+                employeeFilter.appendChild(option);
+            });
+
+            // Populate date range filter
+            const dateRanges = [
+                { value: '7', text: '7 ngày qua' },
+                { value: '30', text: '30 ngày qua' },
+                { value: 'thisMonth', text: 'Tháng này' },
+                { value: 'lastMonth', text: 'Tháng trước' }
+            ];
+            dateRanges.forEach(range => {
+                const option = document.createElement('option');
+                option.value = range.value;
+                option.textContent = range.text;
+                dateRangeFilter.appendChild(option);
+            });
+
+            // Populate table filter
+            const tables = [...new Set(allData.map(invoice => invoice['IDBAN']))];
+            tables.forEach(table => {
+                const option = document.createElement('option');
+                option.value = table;
+                option.textContent = table;
+                tableFilter.appendChild(option);
+            });
+
+            // Add event listeners to filters
+            employeeFilter.addEventListener('change', applyFilters);
+            dateRangeFilter.addEventListener('change', applyFilters);
+            tableFilter.addEventListener('change', applyFilters);
+
+            // Add event listener to reset button
+            document.getElementById('resetFilters').addEventListener('click', resetFilters);
+        }
+        function applyFilters() {
+            const employee = document.getElementById('employeeFilter').value;
+            const dateRange = document.getElementById('dateRangeFilter').value;
+            const table = document.getElementById('tableFilter').value;
+
+            filteredData = allData.filter(invoice => {
+                const employeeMatch = !employee || invoice['Nhân viên'] === employee;
+                const dateMatch = filterByDateRange(invoice['Ngày'], dateRange);
+                const tableMatch = !table || invoice['IDBAN'] === table;
+
+                return employeeMatch && dateMatch && tableMatch;
+            });
+
+            updateDashboard();
+        }
+
+        function filterByDateRange(dateString, range) {
+            const invoiceDate = new Date(dateString.split(' ')[0]);
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+            switch (range) {
+                case '7':
+                    return invoiceDate >= sevenDaysAgo;
+                case '30':
+                    return invoiceDate >= thirtyDaysAgo;
+                case 'thisMonth':
+                    return invoiceDate.getMonth() === today.getMonth() && invoiceDate.getFullYear() === today.getFullYear();
+                case 'lastMonth':
+                    const lastMonth = today.getMonth() === 0 ? 11 : today.getMonth() - 1;
+                    const lastMonthYear = today.getMonth() === 0 ? today.getFullYear() - 1 : today.getFullYear();
+                    return invoiceDate.getMonth() === lastMonth && invoiceDate.getFullYear() === lastMonthYear;
+                default:
+                    return true;
+            }
+        }
+
+        function resetFilters() {
+            document.getElementById('employeeFilter').value = '';
+            document.getElementById('dateRangeFilter').value = '';
+            document.getElementById('tableFilter').value = '';
+            filteredData = allData;
+            updateDashboard();
+        }
+        function updateTableChart() {
+            const tableRevenue = filteredData.reduce((acc, invoice) => {
+                const table = invoice['IDBAN'] || 'Không xác định';
+                acc[table] = (acc[table] || 0) + parseInt(invoice['Tổng tiền']);
+                return acc;
+            }, {});
+
+            const chartData = Object.entries(tableRevenue).map(([table, revenue]) => ({
+                name: table,
+                y: revenue
+            }));
+
+            Highcharts.chart('tableChart', {
+                chart: { type: 'pie' },
+                title: { text: 'Phân bố doanh thu theo ID Bàn' },
+                plotOptions: {
+                    pie: {
+                        allowPointSelect: true,
+                        cursor: 'pointer',
+                        dataLabels: {
+                            enabled: true,
+                            format: '<b>{point.name}</b>: {point.percentage:.1f} %'
+                        }
+                    }
+                },
+                series: [{
+                    name: 'Doanh thu',
+                    colorByPoint: true,
+                    data: chartData
+                }]
+            });
+        }
+        async function fetchDataFromAppSheet() {
+            try {
+                const response = await apiRequest('HOADON', 'Find', {
+                    Selector: "Filter(HOADON, true)"
+                });
+                if (!Array.isArray(response) || response.length === 0) {
+                    console.error("Không nhận được dữ liệu hợp lệ từ API:", response);
+                    throw new Error("Dữ liệu không hợp lệ");
+                }
+                allData = response;
+                console.log("Data fetched from AppSheet:", allData);
+                return allData;
+            } catch (error) {
+                console.error("Lỗi khi lấy dữ liệu từ AppSheet:", error);
+                throw error;
+            }
+        }
+        // New chart functions
+        function updateDepartmentChart() {
+            const departmentRevenue = filteredData.reduce((acc, invoice) => {
+                const department = invoice['Phòng ban'] || 'Không xác định';
+                acc[department] = (acc[department] || 0) + parseInt(invoice['Tổng tiền']);
+                return acc;
+            }, {});
+
+            const chartData = Object.entries(departmentRevenue).map(([department, revenue]) => ({
+                name: department,
+                y: revenue
+            }));
+
+            Highcharts.chart('departmentChart', {
+                chart: { type: 'pie' },
+                title: { text: 'Phân bố doanh thu theo phòng ban' },
+                plotOptions: {
+                    pie: {
+                        allowPointSelect: true,
+                        cursor: 'pointer',
+                        dataLabels: {
+                            enabled: true,
+                            format: '<b>{point.name}</b>: {point.percentage:.1f} %'
+                        }
+                    }
+                },
+                series: [{
+                    name: 'Doanh thu',
+                    colorByPoint: true,
+                    data: chartData
+                }]
+            });
+        }
+
+        function updateTrendChart() {
+            const dailyRevenue = filteredData.reduce((acc, invoice) => {
+                const date = invoice['Ngày'].split(' ')[0];
+                acc[date] = (acc[date] || 0) + parseInt(invoice['Tổng tiền']);
+                return acc;
+            }, {});
+
+            const chartData = Object.entries(dailyRevenue)
+                .map(([date, revenue]) => [new Date(date).getTime(), revenue])
+                .sort((a, b) => a[0] - b[0]);
+
+            Highcharts.chart('trendChart', {
+                chart: { type: 'area' },
+                title: { text: 'Xu hướng doanh thu theo thời gian' },
+                xAxis: {
+                    type: 'datetime',
+                    title: { text: 'Ngày' }
+                },
+                yAxis: {
+                    title: { text: 'Doanh thu (VND)' }
+                },
+                plotOptions: {
+                    area: {
+                        fillColor: {
+                            linearGradient: {
+                                x1: 0,
+                                y1: 0,
+                                x2: 0,
+                                y2: 1
+                            },
+                            stops: [
+                                [0, Highcharts.getOptions().colors[0]],
+                                [1, Highcharts.color(Highcharts.getOptions().colors[0]).setOpacity(0).get('rgba')]
+                            ]
+                        },
+                        marker: {
+                            radius: 2
+                        },
+                        lineWidth: 1,
+                        states: {
+                            hover: {
+                                lineWidth: 1
+                            }
+                        },
+                        threshold: null
+                    }
+                },
+                series: [{
+                    name: 'Doanh thu',
+                    data: chartData
+                }]
+            });
+        }
+
+        function updateDashboard() {
+            // Calculate summary statistics
+            const totalInvoices = filteredData.length;
+            const totalRevenue = filteredData.reduce((sum, invoice) => sum + parseInt(invoice['Tổng tiền']), 0);
+            const averageDiscount = filteredData.reduce((sum, invoice) => sum + parseInt(invoice['Giảm giá'] || 0), 0) / totalInvoices || 0;
+            const averageVAT = filteredData.reduce((sum, invoice) => sum + parseInt(invoice['VAT'] || 0), 0) / totalInvoices || 0;
+
+            // Update summary cards
+            document.getElementById('totalInvoices').textContent = totalInvoices;
+            document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
+            document.getElementById('averageDiscount').textContent = formatCurrency(averageDiscount);
+            document.getElementById('averageVAT').textContent = formatCurrency(averageVAT);
+
+            // Update charts
+            updateRevenueChart();
+            updateEmployeeChart();
+            updateTableChart();
+            updateTrendChart();
+
+            // Update recent invoices table
+            updateRecentInvoicesTable();
+        }
+        function updateEmployeeChart() {
+            const employeeRevenue = filteredData.reduce((acc, invoice) => {
+                const employee = invoice['Nhân viên'];
+                acc[employee] = (acc[employee] || 0) + parseInt(invoice['Tổng tiền']);
+                return acc;
+            }, {});
+
+            const chartData = Object.entries(employeeRevenue)
+                .map(([employee, revenue]) => ({ employee, revenue }))
+                .sort((a, b) => b.revenue - a.revenue)
+                .slice(0, 5);
+
+            Highcharts.chart('employeeChart', {
+                chart: { type: 'bar' },
+                title: { text: 'Top 5 nhân viên theo doanh thu' },
+                xAxis: { categories: chartData.map(d => d.employee) },
+                yAxis: { title: { text: 'Doanh thu (VND)' } },
+                series: [{
+                    name: 'Doanh thu',
+                    data: chartData.map(d => d.revenue)
+                }]
+            });
+        }
+        function updateRevenueChart() {
+            const revenueByDate = filteredData.reduce((acc, invoice) => {
+                const date = invoice['Ngày'].split(' ')[0];
+                acc[date] = (acc[date] || 0) + parseInt(invoice['Tổng tiền']);
+                return acc;
+            }, {});
+
+            const chartData = Object.entries(revenueByDate).map(([date, revenue]) => ({
+                date: date,
+                revenue: revenue
+            })).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            Highcharts.chart('revenueChart', {
+                chart: { type: 'line' },
+                title: { text: 'Doanh thu theo ngày' },
+                xAxis: { categories: chartData.map(d => d.date) },
+                yAxis: { title: { text: 'Doanh thu (VND)' } },
+                series: [{
+                    name: 'Doanh thu',
+                    data: chartData.map(d => d.revenue)
+                }]
+            });
+        }
+        // Pagination variables
+        let currentPage = 1;
+        const itemsPerPage = 10;
+
+        function updateRecentInvoicesTable() {
+            const tableBody = document.querySelector('#recentInvoices tbody');
+            tableBody.innerHTML = '';
+
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedData = filteredData.slice(startIndex, endIndex);
+
+            paginatedData.forEach(invoice => {
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${invoice.IDHOADON}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${invoice['Nhân viên']}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${invoice['Ngày']}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${formatCurrency(invoice['Tổng tiền'])}</td>
+            `;
+            });
+
+            updatePaginationControls();
+        }
+
+        function updatePaginationControls() {
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            document.getElementById('pageInfo').textContent = `Trang ${currentPage} / ${totalPages}`;
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage === totalPages;
+        }
+
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                updateRecentInvoicesTable();
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                updateRecentInvoicesTable();
+            }
+        });
+
+        // Search functionality
+        document.getElementById('invoiceSearch').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            filteredData = allData.filter(invoice =>
+                invoice.IDHOADON.toLowerCase().includes(searchTerm) ||
+                invoice['Nhân viên'].toLowerCase().includes(searchTerm) ||
+                invoice['Ngày'].toLowerCase().includes(searchTerm) ||
+                invoice['Tổng tiền'].toString().includes(searchTerm)
+            );
+            currentPage = 1;
+            updateDashboard();
+        });
+
+        // Sorting functionality
+        document.querySelectorAll('#recentInvoices th').forEach(header => {
+            header.addEventListener('click', () => {
+                const column = header.textContent.trim().toLowerCase();
+                filteredData.sort((a, b) => {
+                    if (column === 'tổng tiền') {
+                        return parseInt(a['Tổng tiền']) - parseInt(b['Tổng tiền']);
+                    }
+                    return a[column].localeCompare(b[column]);
+                });
+                updateRecentInvoicesTable();
+            });
+        });
+
+        // Initialize tooltips
+        function initTooltips() {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
+
+        async function init() {
+            allData = await fetchDataFromAppSheet();
+            filteredData = allData;
+            updateDashboard();
+            populateFilters();
+        }
+
+        // Call init function when the page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>
