@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ứng dụng Quét QR Sản Phẩm</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <script src="
+https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js
+"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+        integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-6 text-center">Ứng dụng Quét QR Sản Phẩm</h1>
+
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Quét mã QR</h2>
+            <div class="flex justify-center">
+                <video id="video" class="w-full max-w-md"></video>
+            </div>
+            <div class="mt-4 text-center">
+                <button id="startButton" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                    Bắt đầu quét
+                </button>
+            </div>
+        </div>
+
+        <div id="result" class="mb-8 hidden">
+            <h2 class="text-xl font-semibold mb-4">Thông tin sản phẩm</h2>
+            <div id="productInfo" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4"></div>
+        </div>
+
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Mã QR Mẫu</h2>
+            <div id="sampleQRCodes" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+        </div>
+    </div>
+
+    <script>
+        const sampleProducts = [
+            {
+                id: "SP001",
+                name: "Laptop Dell XPS 13",
+                price: "25.990.000 VNĐ",
+                description: "Laptop cao cấp, màn hình 13 inch, CPU Intel Core i7, RAM 16GB, SSD 512GB",
+                inventory: 50,
+                history: [
+                    { date: "2024-01-15", type: "Nhập", quantity: 100 },
+                    { date: "2024-02-01", type: "Xuất", quantity: 30 },
+                    { date: "2024-03-10", type: "Xuất", quantity: 20 }
+                ]
+            },
+            {
+                id: "SP002",
+                name: "iPhone 13 Pro",
+                price: "27.990.000 VNĐ",
+                description: "Smartphone cao cấp, màn hình 6.1 inch, camera 3 ống kính, bộ nhớ 256GB",
+                inventory: 75,
+                history: [
+                    { date: "2024-02-01", type: "Nhập", quantity: 200 },
+                    { date: "2024-02-15", type: "Xuất", quantity: 50 },
+                    { date: "2024-03-05", type: "Xuất", quantity: 75 }
+                ]
+            },
+            {
+                id: "SP003",
+                name: "Sony WH-1000XM4",
+                price: "6.490.000 VNĐ",
+                description: "Tai nghe chụp tai không dây, chống ồn chủ động, thời lượng pin 30 giờ",
+                inventory: 120,
+                history: [
+                    { date: "2024-01-10", type: "Nhập", quantity: 150 },
+                    { date: "2024-02-20", type: "Xuất", quantity: 30 }
+                ]
+            }
+        ];
+
+        function showProduct(product) {
+            const productInfo = document.getElementById('productInfo');
+            let historyHTML = '<h4 class="font-semibold mt-4 mb-2">Lịch sử xuất nhập kho:</h4><ul>';
+            product.history.forEach(record => {
+                historyHTML += `<li>${record.date}: ${record.type} ${record.quantity} sản phẩm</li>`;
+            });
+            historyHTML += '</ul>';
+
+            productInfo.innerHTML = `
+                <h3 class="text-lg font-semibold">${product.name}</h3>
+                <p class="text-gray-600">Mã sản phẩm: ${product.id}</p>
+                <p class="text-gray-600">Giá: ${product.price}</p>
+                <p class="text-gray-600">${product.description}</p>
+                <p class="text-gray-600">Số lượng tồn kho: ${product.inventory}</p>
+                ${historyHTML}
+            `;
+            document.getElementById('result').classList.remove('hidden');
+        }
+
+        function generateQRCode(data, elementId) {
+            new QRCode(document.getElementById(elementId), {
+                text: JSON.stringify(data),
+                width: 128,
+                height: 128
+            });
+        }
+
+        function displaySampleQRCodes() {
+            const container = document.getElementById('sampleQRCodes');
+            sampleProducts.forEach((product, index) => {
+                const div = document.createElement('div');
+                div.className = 'bg-white shadow-md rounded p-4';
+                div.innerHTML = `
+                    <h3 class="text-lg font-semibold mb-2">${product.name}</h3>
+                    <div id="qr-${index}"></div>
+                `;
+                container.appendChild(div);
+                generateQRCode(product, `qr-${index}`);
+            });
+        }
+
+        const video = document.getElementById('video');
+        const startButton = document.getElementById('startButton');
+
+        startButton.onclick = () => {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                .then(function (stream) {
+                    video.srcObject = stream;
+                    video.setAttribute("playsinline", true);
+                    video.play();
+                    requestAnimationFrame(tick);
+                });
+        };
+
+        function tick() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                const canvas = document.createElement("canvas");
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                if (code) {
+                    try {
+                        let data = code.data;
+                        // Kiểm tra xem dữ liệu có phải là ID sản phẩm đơn giản không
+                        if (data.startsWith("SP")) {
+                            // Nếu là ID sản phẩm, tìm sản phẩm tương ứng
+                            const product = sampleProducts.find(p => p.id === data);
+                            if (product) {
+                                showProduct(product);
+                                return;
+                            }
+                        } else {
+                            // Nếu không, thử phân tích như JSON
+                            const product = JSON.parse(data);
+                            showProduct(product);
+                            return;
+                        }
+                    } catch (error) {
+                        console.error("Lỗi khi phân tích dữ liệu QR:", error);
+                    }
+                }
+            }
+            requestAnimationFrame(tick);
+        }
+
+
+    </script>
+</body>
+
+</html>
