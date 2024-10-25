@@ -5,86 +5,116 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Màn hình khách hàng - Goal Coffee</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
         body {
-            background-color: #000;
-            color: #fff;
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
             overflow: hidden;
         }
-        .scroll-container {
-            animation: scroll 20s linear infinite;
-        }
-        @keyframes scroll {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(-50%); }
-        }
-        .item-enter {
+
+        .animate-slide-in {
             animation: slideIn 0.5s ease-out;
         }
+
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
         @keyframes slideIn {
             from { transform: translateX(-100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .7; }
+        }
+
+        .qr-container {
+            width: 200px;
+            height: 200px;
+            margin: auto;
+        }
     </style>
 </head>
 <body>
-    <div class="h-screen flex flex-col">
+    <div class="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-white">
         <!-- Header -->
-        <div class="bg-blue-600 p-4">
-            <div class="text-center">
-                <h1 class="text-3xl font-bold">Goal Coffee</h1>
-                <p class="text-lg mt-2" id="welcomeMessage">Xin chào quý khách!</p>
-                <p class="text-xl mt-2" id="currentTime"></p>
+        <header class="bg-white border-b border-gray-200 p-6 shadow-sm">
+            <div class="container mx-auto text-center">
+                <h1 class="text-4xl font-bold mb-2 text-blue-600">Goal Coffee</h1>
+                <p class="text-xl text-gray-600" id="welcomeMessage">Xin chào quý khách!</p>
+                <p class="text-lg text-gray-500 mt-2" id="currentTime"></p>
             </div>
-        </div>
+        </header>
 
         <!-- Main Content -->
         <div class="flex-1 flex">
             <!-- Cart Items -->
-            <div class="w-2/3 p-4 border-r border-gray-700">
-                <h2 class="text-xl font-semibold mb-4">Đơn hàng hiện tại</h2>
-                <div id="cartItems" class="space-y-2">
-                    <!-- Cart items will be displayed here -->
+            <div class="w-2/3 p-6">
+                <div class="bg-white rounded-xl p-6 h-full shadow-sm border border-gray-100">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Đơn hàng của bạn</h2>
+                    <div id="cartItems" class="space-y-4 overflow-y-auto max-h-[calc(100vh-280px)]">
+                        <!-- Cart items will be displayed here -->
+                    </div>
                 </div>
             </div>
 
-            <!-- Total and Promotions -->
-            <div class="w-1/3 p-4 flex flex-col">
-                <!-- Order Summary -->
-                <div class="mb-6">
-                    <h2 class="text-xl font-semibold mb-4">Tổng cộng</h2>
-                    <div class="space-y-2">
-                        <div class="flex justify-between">
-                            <span>Tổng tiền hàng:</span>
-                            <span id="subtotal">0đ</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>VAT (10%):</span>
-                            <span id="vat">0đ</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>Giảm giá:</span>
-                            <span id="discount">0đ</span>
-                        </div>
-                        <div class="flex justify-between text-xl font-bold">
-                            <span>Tổng cộng:</span>
-                            <span id="total">0đ</span>
+            <!-- Order Summary & QR Code -->
+            <div class="w-1/3 p-6">
+                <div class="space-y-6">
+                    <!-- Order Summary Card -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                        <h2 class="text-2xl font-bold mb-6 text-gray-800">Tổng cộng</h2>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center text-gray-600">
+                                <span>Tổng tiền hàng:</span>
+                                <span id="subtotal" class="text-lg">0đ</span>
+                            </div>
+                            <div class="flex justify-between items-center text-gray-600">
+                                <span>VAT (10%):</span>
+                                <span id="vat" class="text-lg">0đ</span>
+                            </div>
+                            <div class="flex justify-between items-center text-gray-600">
+                                <span>Giảm giá:</span>
+                                <span id="discount" class="text-lg text-red-500">0đ</span>
+                            </div>
+                            <div class="h-px bg-gray-200"></div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xl font-bold text-gray-800">Tổng thanh toán:</span>
+                                <span id="total" class="text-2xl font-bold text-blue-600">0đ</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Promotions -->
-                <div class="flex-1">
-                    <h2 class="text-xl font-semibold mb-4">Khuyến mãi</h2>
-                    <div id="promotions" class="h-48 overflow-hidden relative">
-                        <div class="scroll-container">
-                            <div class="p-2 bg-blue-900 rounded mb-2">🎉 Giảm 10% cho hóa đơn trên 500,000đ</div>
-                            <div class="p-2 bg-blue-900 rounded mb-2">☕ Tặng 1 phần bánh cho hóa đơn trên 300,000đ</div>
-                            <div class="p-2 bg-blue-900 rounded mb-2">🎁 Tích điểm đổi quà hấp dẫn</div>
-                            <!-- Duplicate for smooth scrolling -->
-                            <div class="p-2 bg-blue-900 rounded mb-2">🎉 Giảm 10% cho hóa đơn trên 500,000đ</div>
-                            <div class="p-2 bg-blue-900 rounded mb-2">☕ Tặng 1 phần bánh cho hóa đơn trên 300,000đ</div>
-                            <div class="p-2 bg-blue-900 rounded mb-2">🎁 Tích điểm đổi quà hấp dẫn</div>
+                    <!-- QR Payment Card -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                        <div class="text-center">
+                            <h2 class="text-2xl font-bold mb-4 text-gray-800">Quét mã để thanh toán</h2>
+                            <div class="flex justify-center space-x-6">
+                                <!-- Momo QR -->
+                                <div class="text-center">
+                                    <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+                                        <div id="momoQR" class="qr-container"></div>
+                                    </div>
+                                    <p class="mt-2 text-pink-600 font-medium">Momo</p>
+                                    <p class="text-sm text-gray-500">0326132124</p>
+                                </div>
+                                <!-- VietQR -->
+                                <div class="text-center">
+                                    <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+                                        <div id="vietQR" class="qr-container"></div>
+                                    </div>
+                                    <p class="mt-2 text-blue-600 font-medium">VietQR</p>
+                                    <p class="text-sm text-gray-500">MB Bank - 7320012003</p>
+                                </div>
+                            </div>
+                            <p class="mt-4 text-gray-500 text-sm">
+                                Quét mã QR bằng ứng dụng để thanh toán nhanh chóng
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -93,61 +123,166 @@
     </div>
 
     <script>
+        let momoQRCode = null;
+        let vietQRCode = null;
+
+        // Khởi tạo QR codes
+        function initQRCodes() {
+            // Tạo Momo QR
+            momoQRCode = new QRCode(document.getElementById("momoQR"), {
+                text: generateMomoQRText(0),
+                width: 200,
+                height: 200,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+
+            // Tạo VietQR
+            vietQRCode = new QRCode(document.getElementById("vietQR"), {
+                text: generateVietQRText(0),
+                width: 200,
+                height: 200,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+
+        // Tạo text cho Momo QR
+        function generateMomoQRText(amount) {
+            return `2|99|0326132124|NINH VAN PHUOC||0|0|${amount}`;
+        }
+
+        // Tạo text cho VietQR
+        function generateVietQRText(amount) {
+            // Thông tin ngân hàng MB (Military Bank)
+            const bankId = '970422'; // Mã ngân hàng MB
+            const accountNo = '7320012003';
+            const accountName = 'NINH VAN PHUOC';
+            
+            // Tạo chuỗi theo chuẩn VietQR
+            // Format: BankId|AccountNo|AccountName|Amount
+            return `${bankId}|${accountNo}|${accountName}|${amount}`;
+        }
+
+        // Update QR codes với số tiền mới
+        function updateQRCodes(amount) {
+            try {
+                // Cập nhật Momo QR
+                const momoQRText = generateMomoQRText(amount);
+                momoQRCode.clear();
+                momoQRCode.makeCode(momoQRText);
+
+                // Cập nhật VietQR
+                const vietQRText = generateVietQRText(amount);
+                vietQRCode.clear();
+                vietQRCode.makeCode(vietQRText);
+            } catch (error) {
+                console.error('Lỗi khi cập nhật mã QR:', error);
+            }
+        }
+
         // Update current time
         function updateTime() {
             const now = new Date();
-            const timeString = now.toLocaleTimeString('vi-VN');
-            const dateString = now.toLocaleDateString('vi-VN');
+            const timeString = now.toLocaleTimeString('vi-VN', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const dateString = now.toLocaleDateString('vi-VN', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
             document.getElementById('currentTime').textContent = `${dateString} ${timeString}`;
         }
-        setInterval(updateTime, 1000);
-        updateTime();
 
-        // Listen for messages from the main window
-        window.addEventListener('message', function(event) {
-            // Verify origin for security
-            if (event.origin !== window.origin) return;
-
-            const data = event.data;
-            switch (data.type) {
-                case 'updateCart':
-                    updateCartDisplay(data.cart);
-                    updateTotals(data.totals);
-                    break;
-                case 'welcome':
-                    updateWelcomeMessage(data.customer);
-                    break;
-            }
-        });
-
+        // Cart display
         function updateCartDisplay(cart) {
             const cartContainer = document.getElementById('cartItems');
             cartContainer.innerHTML = cart.map(item => `
-                <div class="item-enter bg-gray-800 p-3 rounded-lg flex justify-between items-center">
-                    <div>
-                        <span class="font-medium">${item.name}</span>
-                        <span class="text-gray-400"> x ${item.quantity}</span>
+                <div class="animate-slide-in bg-gray-50 p-4 rounded-xl flex justify-between items-center transform transition-all hover:bg-gray-100 border border-gray-200">
+                    <div class="flex-1">
+                        <div class="flex items-center">
+                            <span class="font-semibold text-lg text-gray-800">${item.name}</span>
+                            <span class="ml-3 px-2 py-1 bg-blue-100 text-blue-600 text-sm rounded-full">x${item.quantity}</span>
+                        </div>
+                        <div class="text-gray-500 text-sm mt-1">
+                            ${formatCurrency(item.price)} / món
+                        </div>
                     </div>
-                    <span class="font-medium">${formatCurrency(item.price * item.quantity)}</span>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-blue-600">
+                            ${formatCurrency(item.price * item.quantity)}
+                        </div>
+                    </div>
                 </div>
             `).join('');
         }
 
+        // Update totals
         function updateTotals(totals) {
-            document.getElementById('subtotal').textContent = formatCurrency(totals.subtotal);
-            document.getElementById('vat').textContent = formatCurrency(totals.vat);
-            document.getElementById('discount').textContent = formatCurrency(totals.discount);
-            document.getElementById('total').textContent = formatCurrency(totals.total);
+            const elements = {
+                'subtotal': totals.subtotal,
+                'vat': totals.vat,
+                'discount': totals.discount,
+                'total': totals.total
+            };
+
+            for (const [id, value] of Object.entries(elements)) {
+                const element = document.getElementById(id);
+                element.textContent = formatCurrency(value);
+                element.classList.add('animate-pulse-slow');
+                setTimeout(() => element.classList.remove('animate-pulse-slow'), 1000);
+            }
+
+            // Cập nhật QR codes với tổng tiền mới
+            updateQRCodes(totals.total);
         }
 
         function updateWelcomeMessage(customer) {
-            const message = customer ? `Xin chào, ${customer}!` : 'Xin chào quý khách!';
+            const message = customer ? 
+                `Xin chào, ${customer}! 👋` : 
+                'Xin chào quý khách! 👋';
             document.getElementById('welcomeMessage').textContent = message;
         }
 
         function formatCurrency(amount) {
-            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+            return new Intl.NumberFormat('vi-VN', { 
+                style: 'currency', 
+                currency: 'VND'
+            }).format(amount);
         }
+
+        // Listen for messages
+        window.addEventListener('message', function(event) {
+            try {
+                if (event.origin !== window.origin) return;
+                const data = event.data;
+                
+                switch (data.type) {
+                    case 'updateCart':
+                        if (data.cart) updateCartDisplay(data.cart);
+                        if (data.totals) updateTotals(data.totals);
+                        break;
+                    case 'welcome':
+                        if (data.customer) updateWelcomeMessage(data.customer);
+                        break;
+                }
+            } catch (error) {
+                console.error('Lỗi khi xử lý message:', error);
+            }
+        });
+
+        // Khởi tạo
+        document.addEventListener('DOMContentLoaded', function() {
+            initQRCodes();
+            setInterval(updateTime, 1000);
+            updateTime();
+        });
     </script>
 </body>
 </html>
