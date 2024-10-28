@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Màn hình khách hàng - Goal Coffee</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         
@@ -31,12 +30,6 @@
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: .7; }
-        }
-
-        .qr-container {
-            width: 200px;
-            height: 200px;
-            margin: auto;
         }
     </style>
 </head>
@@ -94,26 +87,20 @@
                     <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                         <div class="text-center">
                             <h2 class="text-2xl font-bold mb-4 text-gray-800">Quét mã để thanh toán</h2>
-                            <div class="flex justify-center space-x-6">
-                                <!-- Momo QR -->
+                            <div class="flex justify-center">
                                 <div class="text-center">
                                     <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
-                                        <div id="momoQR" class="qr-container"></div>
+                                        <img id="vietQRImage" 
+                                             class="w-[200px] h-[200px] object-contain"
+                                             src="https://img.vietqr.io/image/MB-7320012003-compact2.png?amount=0&addInfo=Thanh%20toan%20Goal%20Coffee&accountName=NINH%20VAN%20PHUOC"
+                                             alt="VietQR Payment Code" />
                                     </div>
-                                    <p class="mt-2 text-pink-600 font-medium">Momo</p>
-                                    <p class="text-sm text-gray-500">0326132124</p>
-                                </div>
-                                <!-- VietQR -->
-                                <div class="text-center" hidden>
-                                    <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
-                                        <div id="vietQR" class="qr-container"></div>
-                                    </div>
-                                    <p class="mt-2 text-blue-600 font-medium">VietQR</p>
-                                    <p class="text-sm text-gray-500">MB Bank - 7320012003</p>
+                                    <p class="mt-2 text-blue-600 font-medium">MB Bank</p>
+                                    <p class="text-sm text-gray-500">7320012003 - NINH VAN PHUOC</p>
                                 </div>
                             </div>
                             <p class="mt-4 text-gray-500 text-sm">
-                                Quét mã QR bằng ứng dụng để thanh toán nhanh chóng
+                                Quét mã QR bằng ứng dụng ngân hàng để thanh toán nhanh chóng
                             </p>
                         </div>
                     </div>
@@ -123,66 +110,6 @@
     </div>
 
     <script>
-        let momoQRCode = null;
-        let vietQRCode = null;
-
-        // Khởi tạo QR codes
-        function initQRCodes() {
-            // Tạo Momo QR
-            momoQRCode = new QRCode(document.getElementById("momoQR"), {
-                text: generateMomoQRText(0),
-                width: 200,
-                height: 200,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
-
-            // Tạo VietQR
-            vietQRCode = new QRCode(document.getElementById("vietQR"), {
-                text: generateVietQRText(0),
-                width: 200,
-                height: 200,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
-        }
-
-        // Tạo text cho Momo QR
-        function generateMomoQRText(amount) {
-            return `2|99|0326132124|NINH VAN PHUOC||0|0|${amount}`;
-        }
-
-        // Tạo text cho VietQR
-        function generateVietQRText(amount) {
-            // Thông tin ngân hàng MB (Military Bank)
-            const bankId = '970422'; // Mã ngân hàng MB
-            const accountNo = '7320012003';
-            const accountName = 'NINH VAN PHUOC';
-            
-            // Tạo chuỗi theo chuẩn VietQR
-            // Format: BankId|AccountNo|AccountName|Amount
-            return `${bankId}|${accountNo}|${accountName}|${amount}`;
-        }
-
-        // Update QR codes với số tiền mới
-        function updateQRCodes(amount) {
-            try {
-                // Cập nhật Momo QR
-                const momoQRText = generateMomoQRText(amount);
-                momoQRCode.clear();
-                momoQRCode.makeCode(momoQRText);
-
-                // Cập nhật VietQR
-                const vietQRText = generateVietQRText(amount);
-                vietQRCode.clear();
-                vietQRCode.makeCode(vietQRText);
-            } catch (error) {
-                console.error('Lỗi khi cập nhật mã QR:', error);
-            }
-        }
-
         // Update current time
         function updateTime() {
             const now = new Date();
@@ -198,6 +125,22 @@
                 day: 'numeric'
             });
             document.getElementById('currentTime').textContent = `${dateString} ${timeString}`;
+        }
+
+        // Update VietQR
+        function updateQRCode(amount) {
+            const bankId = 'MB';
+            const accountNo = '7320012003';
+            const template = 'compact2';
+            const accountName = 'NINH VAN PHUOC';
+            const description = 'Thanh toan Goal Coffee';
+
+            const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-${template}.png?amount=${Math.round(amount)}&addInfo=${encodeURIComponent(description)}&accountName=${encodeURIComponent(accountName)}`;
+
+            const qrImage = document.getElementById('vietQRImage');
+            if (qrImage) {
+                qrImage.src = qrUrl;
+            }
         }
 
         // Cart display
@@ -239,8 +182,8 @@
                 setTimeout(() => element.classList.remove('animate-pulse-slow'), 1000);
             }
 
-            // Cập nhật QR codes với tổng tiền mới
-            updateQRCodes(totals.total);
+            // Cập nhật mã QR với tổng tiền mới
+            updateQRCode(totals.total);
         }
 
         function updateWelcomeMessage(customer) {
@@ -251,10 +194,10 @@
         }
 
         function formatCurrency(amount) {
-            return new Intl.NumberFormat('vi-VN', { 
-                style: 'currency', 
-                currency: 'VND'
-            }).format(amount);
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'decimal',
+                maximumFractionDigits: 0
+            }).format(amount) + 'đ';
         }
 
         // Listen for messages
@@ -279,7 +222,6 @@
 
         // Khởi tạo
         document.addEventListener('DOMContentLoaded', function() {
-            initQRCodes();
             setInterval(updateTime, 1000);
             updateTime();
         });
