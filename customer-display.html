@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #ffffff;
@@ -23,25 +24,46 @@
         }
 
         @keyframes slideIn {
-            from { transform: translateX(-100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .7; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .7;
+            }
         }
+        
     </style>
 </head>
+
 <body>
     <div class="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-white">
         <!-- Header -->
         <header class="bg-white border-b border-gray-200 p-6 shadow-sm">
             <div class="container mx-auto text-center">
                 <h1 class="text-4xl font-bold mb-2 text-blue-600">Goal Coffee</h1>
-                <p class="text-xl text-gray-600" id="welcomeMessage">Xin chào quý khách!</p>
+                <div class="flex items-center justify-center gap-2">
+                    <p class="text-xl text-gray-600" id="welcomeMessage">Xin chào quý khách!</p>
+                    <div id="tableInfo"
+                        class="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm font-medium hidden"></div>
+                </div>
                 <p class="text-lg text-gray-500 mt-2" id="currentTime"></p>
             </div>
+
         </header>
 
         <!-- Main Content -->
@@ -90,10 +112,9 @@
                             <div class="flex justify-center">
                                 <div class="text-center">
                                     <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
-                                        <img id="vietQRImage" 
-                                             class="w-[200px] h-[200px] object-contain"
-                                             src="https://img.vietqr.io/image/MB-7320012003-compact2.png?amount=0&addInfo=Thanh%20toan%20Goal%20Coffee&accountName=NINH%20VAN%20PHUOC"
-                                             alt="VietQR Payment Code" />
+                                        <img id="vietQRImage" class="w-[200px] h-[200px] object-contain"
+                                            src="https://img.vietqr.io/image/MB-7320012003-compact2.png?amount=0&addInfo=Thanh%20toan%20Goal%20Coffee&accountName=NINH%20VAN%20PHUOC"
+                                            alt="VietQR Payment Code" />
                                     </div>
                                     <p class="mt-2 text-blue-600 font-medium">MB Bank</p>
                                     <p class="text-sm text-gray-500">7320012003 - NINH VAN PHUOC</p>
@@ -113,8 +134,8 @@
         // Update current time
         function updateTime() {
             const now = new Date();
-            const timeString = now.toLocaleTimeString('vi-VN', { 
-                hour: '2-digit', 
+            const timeString = now.toLocaleTimeString('vi-VN', {
+                hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit'
             });
@@ -141,6 +162,46 @@
             if (qrImage) {
                 qrImage.src = qrUrl;
             }
+        }
+        function updateTableInfo(tableInfo) {
+            const tableInfoElement = document.getElementById('tableInfo');
+            if (!tableInfoElement) return;
+
+            if (tableInfo) {
+                tableInfoElement.textContent = tableInfo.name;
+                tableInfoElement.classList.remove('hidden');
+            } else {
+                tableInfoElement.classList.add('hidden');
+            }
+        }
+        function showTableTransferNotification(fromTable, toTable) {
+            const notificationContainer = document.createElement('div');
+            notificationContainer.className = 'fixed top-4 right-4 bg-white rounded-lg shadow-lg p-4 max-w-md animate-slide-in border-l-4 border-blue-500';
+            notificationContainer.innerHTML = `
+        <div class="flex items-start">
+            <div class="flex-shrink-0">
+                <svg class="h-6 w-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-gray-900">Chuyển bàn</h3>
+                <p class="mt-1 text-sm text-gray-500">
+                    Đang chuyển từ ${fromTable} sang ${toTable}
+                </p>
+            </div>
+        </div>
+    `;
+
+            document.body.appendChild(notificationContainer);
+
+            // Xóa thông báo sau 3 giây
+            setTimeout(() => {
+                notificationContainer.style.opacity = '0';
+                notificationContainer.style.transform = 'translateX(100%)';
+                setTimeout(() => notificationContainer.remove(), 300);
+            }, 3000);
         }
 
         // Cart display
@@ -187,8 +248,8 @@
         }
 
         function updateWelcomeMessage(customer) {
-            const message = customer ? 
-                `Xin chào, ${customer}! 👋` : 
+            const message = customer ?
+                `Xin chào, ${customer}! 👋` :
                 'Xin chào quý khách! 👋';
             document.getElementById('welcomeMessage').textContent = message;
         }
@@ -200,19 +261,22 @@
             }).format(amount) + 'đ';
         }
 
-        // Listen for messages
-        window.addEventListener('message', function(event) {
+        window.addEventListener('message', function (event) {
             try {
                 if (event.origin !== window.origin) return;
                 const data = event.data;
-                
+
                 switch (data.type) {
                     case 'updateCart':
                         if (data.cart) updateCartDisplay(data.cart);
                         if (data.totals) updateTotals(data.totals);
+                        if (data.tableInfo) updateTableInfo(data.tableInfo);
                         break;
                     case 'welcome':
                         if (data.customer) updateWelcomeMessage(data.customer);
+                        break;
+                    case 'tableTransfer':
+                        showTableTransferNotification(data.fromTable, data.toTable);
                         break;
                 }
             } catch (error) {
@@ -221,10 +285,11 @@
         });
 
         // Khởi tạo
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             setInterval(updateTime, 1000);
             updateTime();
         });
     </script>
 </body>
+
 </html>
