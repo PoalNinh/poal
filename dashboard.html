@@ -441,7 +441,7 @@
             const source = document.getElementById('trafficSourceFilter').value;
             const dateRange = document.getElementById('dateFilter').value;
             const status = document.getElementById('statusFilter').value;
-            const linkSearch = document.getElementById('linkFilter').value.toLowerCase();
+            const linkSearch = document.getElementById('linkFilter').value;
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
 
@@ -449,7 +449,8 @@
                 const marketerMatch = !marketer || item.Marketer === marketer;
                 const sourceMatch = !source || item['Traffic Source'] === source;
                 const statusMatch = !status || item.Status === status;
-                const linkMatch = !linkSearch || (item.Link || '').toLowerCase().includes(linkSearch);
+                const linkMatch = !linkSearch || item.Link === linkSearch;
+
 
                 // Date filtering
                 let dateMatch = true;
