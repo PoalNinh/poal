@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo Kết Quả ADS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highcharts/10.3.3/highcharts.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+            background-color: #f3f4f6;
+            padding: 10px;
+        }
+
+        .sidebar-icon {
+            width: 20px;
+            height: 20px;
+            color: #374151;
+            margin-right: 8px;
+        }
+
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #374151;
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .filter-section {
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-top: 10px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .filter-section:hover {
+            transform: translateY(-2px);
+        }
+
+        .filter-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #6b7280;
+        }
+
+        .filter-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background-color: #f9fafb;
+            color: #374151;
+            margin-top: 4px;
+        }
+
+        .filter-button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }
+
+        #applyFilters {
+            background-color: #3b82f6;
+            color: #ffffff;
+        }
+
+        #applyFilters:hover {
+            background-color: #2563eb;
+        }
+
+        #resetFilters {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+
+        #resetFilters:hover {
+            background-color: #d1d5db;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+    <!-- Top Navigation -->
+    <nav class="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md z-10">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center">
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">ADS Performance Dashboard</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="exportData"
+                    class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors">
+                    <i class="fas fa-download mr-2"></i>Export
+                </button>
+                <button id="darkModeToggle"
+                    class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 transition-colors duration-300">
+                    <i class="fas fa-moon text-gray-800 dark:text-white"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content with Sidebar -->
+    <div class="flex pt-16">
+        <!-- Sidebar Filters -->
+        <div class="sidebar w-64 fixed left-0 top-16 bottom-0 bg-white dark:bg-gray-800 shadow-sm overflow-y-auto">
+            <!-- Header -->
+            <div class="sidebar-header border-b dark:border-gray-700">
+                <svg class="sidebar-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
+                        clip-rule="evenodd" />
+                </svg>
+                Bộ lọc
+            </div>
+
+            <!-- Date Filter -->
+            <div class="filter-section">
+                <label class="filter-label">Khoảng thời gian</label>
+                <select id="dateFilter" class="filter-input">
+                    <option value="all">Tất cả ngày</option>
+                    <option value="7">7 ngày qua</option>
+                    <option value="30">30 ngày qua</option>
+                    <option value="90">90 ngày qua</option>
+                    <option value="custom">Tùy chỉnh</option>
+                </select>
+
+                <div id="customDateRange" class="hidden space-y-2 mt-2">
+                    <div>
+                        <label class="filter-label">Từ ngày</label>
+                        <input type="date" id="startDate" class="filter-input">
+                    </div>
+                    <div>
+                        <label class="filter-label">Đến ngày</label>
+                        <input type="date" id="endDate" class="filter-input">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Marketer Filter -->
+            <div class="filter-section">
+                <label class="filter-label">Marketer</label>
+                <select id="marketerFilter" class="filter-input">
+                    <option value="">Tất cả Marketer</option>
+                </select>
+            </div>
+
+            <!-- Traffic Source Filter -->
+            <div class="filter-section">
+                <label class="filter-label">Traffic Source</label>
+                <select id="trafficSourceFilter" class="filter-input">
+                    <option value="">Tất cả nguồn</option>
+                </select>
+            </div>
+
+            <!-- Link Filter -->
+            <div class="filter-section">
+                <label class="filter-label">Link</label>
+                <select id="linkFilter" class="filter-input">
+                    <option value="">Tất cả link</option>
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="filter-section">
+                <label class="filter-label">Trạng thái</label>
+                <select id="statusFilter" class="filter-input">
+                    <option value="">Tất cả trạng thái</option>
+                </select>
+            </div>
+
+            <!-- Filter Buttons -->
+            <!-- Filter Buttons -->
+            <div class="p-3 sticky bottom-0 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
+                <div class="flex space-x-2 justify-center">
+                    <button id="applyFilters" class="filter-button bg-blue-600 text-white hover:bg-blue-700">
+                        <svg class="w-4 h-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        Áp dụng
+                    </button>
+                    <button id="resetFilters"
+                        class="filter-button bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                        <svg class="w-4 h-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        Đặt lại
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="ml-72 flex-1 p-8">
+            <!-- KPI Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-white">Tổng chi phí</h3>
+                    <p id="totalCost" class="text-3xl font-bold text-red-500">0 ₫</p>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-white">Tổng doanh thu</h3>
+                    <p id="totalRevenue" class="text-3xl font-bold text-green-500">0 ₫</p>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-white">Tổng lợi nhuận</h3>
+                    <p id="totalProfit" class="text-3xl font-bold text-blue-500">0 ₫</p>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-white">ROI trung bình</h3>
+                    <p id="averageROI" class="text-3xl font-bold text-purple-500">0%</p>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Chi phí & Doanh thu theo ngày
+                    </h3>
+                    <div id="revenueChart" style="height: 300px;"></div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Top Marketer</h3>
+                    <div id="marketerChart" style="height: 300px;"></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Traffic Source Distribution
+                    </h3>
+                    <div id="trafficChart" style="height: 300px;"></div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Conversion Rate Trend</h3>
+                    <div id="cvrChart" style="height: 300px;"></div>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Chi tiết chiến dịch</h3>
+                    <input type="text" id="campaignSearch" placeholder="Tìm kiếm..."
+                        class="w-64 p-2 border rounded-md dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table id="campaignTable" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Ad ID
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Marketer
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Traffic Source
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Link
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Cost
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Revenue
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    ROI
+                                </th>
+                                <th
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Status
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                            <!-- Table rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 flex justify-between items-center">
+                    <button id="prevPage"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">Trang
+                        trước</button>
+                    <span id="pageInfo" class="text-gray-600 dark:text-gray-300"></span>
+                    <button id="nextPage"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">Trang
+                        sau</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const appId = '171403da-4bac-4fd5-b98f-39fc9658bbc8';
+        const accessKey = 'V2-V9Krv-dfHd1-BmyZ0-JPHnA-rVvQa-ku7Kt-EUA1J-V2ONy';
+        const region = 'www';
+
+        let allData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        const itemsPerPage = 10;
+
+        // Format currency function
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+        }
+
+        // API Request function
+        async function apiRequest(tableName, action, data) {
+            const apiUrl = `https://${region}.appsheet.com/api/v2/apps/${appId}/tables/${tableName}/Action`;
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'ApplicationAccessKey': accessKey,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        Action: action,
+                        Properties: {},
+                        ...data
+                    })
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("API Request Error:", error);
+                alert("Có lỗi khi tải dữ liệu. Vui lòng thử lại sau.");
+                throw error;
+            }
+        }
+
+        // Fetch data from AppSheet
+        async function fetchData() {
+            try {
+                const response = await apiRequest('Data', 'Find', {
+                    Selector: "Filter(Data, true)"
+                });
+                allData = response;
+                filteredData = allData;
+                updateDashboard();
+                populateFilters();
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            }
+        }
+
+        // Update dashboard metrics
+        function updateDashboard() {
+            // Update KPI cards
+            const totalCostValue = filteredData.reduce((sum, item) => sum + parseFloat(item['Cost VND'] || 0), 0);
+            const totalRevenueValue = filteredData.reduce((sum, item) => sum + parseFloat(item['Revenue VND'] || 0), 0);
+            const totalProfitValue = totalRevenueValue - totalCostValue;
+            const averageROIValue = (totalProfitValue / totalCostValue * 100) || 0;
+
+            document.getElementById('totalCost').textContent = formatCurrency(totalCostValue);
+            document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenueValue);
+            document.getElementById('totalProfit').textContent = formatCurrency(totalProfitValue);
+            document.getElementById('averageROI').textContent = `${averageROIValue.toFixed(2)}%`;
+
+            updateCharts();
+            updateCampaignTable();
+        }
+
+        // Filter functions
+        function populateFilters() {
+            const marketerFilter = document.getElementById('marketerFilter');
+            const sourceFilter = document.getElementById('trafficSourceFilter');
+            const statusFilter = document.getElementById('statusFilter');
+            const linkFilter = document.getElementById('linkFilter');
+
+            // Clear existing options
+            marketerFilter.innerHTML = '<option value="">Tất cả Marketer</option>';
+            sourceFilter.innerHTML = '<option value="">Tất cả nguồn</option>';
+            statusFilter.innerHTML = '<option value="">Tất cả trạng thái</option>';
+            linkFilter.innerHTML = '<option value="">Tất cả link</option>';
+
+            // Get unique values
+            const marketers = [...new Set(allData.map(item => item.Marketer))];
+            const sources = [...new Set(allData.map(item => item['Traffic Source']))];
+            const statuses = [...new Set(allData.map(item => item.Status))];
+            const links = [...new Set(allData.map(item => item.Link))];
+
+            // Populate filters
+            marketers.sort().forEach(marketer => {
+                if (marketer) marketerFilter.add(new Option(marketer, marketer));
+            });
+
+            sources.sort().forEach(source => {
+                if (source) sourceFilter.add(new Option(source, source));
+            });
+
+            statuses.sort().forEach(status => {
+                if (status) statusFilter.add(new Option(status, status));
+            });
+
+            links.sort().forEach(link => {
+                if (link) linkFilter.add(new Option(link, link));
+            });
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const marketer = document.getElementById('marketerFilter').value;
+            const source = document.getElementById('trafficSourceFilter').value;
+            const dateRange = document.getElementById('dateFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            const linkSearch = document.getElementById('linkFilter').value.toLowerCase();
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            filteredData = allData.filter(item => {
+                const marketerMatch = !marketer || item.Marketer === marketer;
+                const sourceMatch = !source || item['Traffic Source'] === source;
+                const statusMatch = !status || item.Status === status;
+                const linkMatch = !linkSearch || (item.Link || '').toLowerCase().includes(linkSearch);
+
+                // Date filtering
+                let dateMatch = true;
+                if (dateRange === 'custom' && startDate && endDate) {
+                    const itemDate = new Date(item.Date.split(' ')[0]);
+                    dateMatch = itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
+                } else if (dateRange !== 'custom') {
+                    dateMatch = filterByDateRange(item.Date, dateRange);
+                }
+
+                return marketerMatch && sourceMatch && dateMatch && statusMatch && linkMatch;
+            });
+
+            currentPage = 1;
+            updateDashboard();
+        }
+
+        // Date range filter helper
+        function filterByDateRange(dateString, range) {
+            if (!range || range === 'custom' || range === 'all') return true;
+
+            const itemDate = new Date(dateString.split(' ')[0]);
+            const today = new Date();
+            const rangeDate = new Date(today.getTime() - (parseInt(range) * 24 * 60 * 60 * 1000));
+            return itemDate >= rangeDate;
+        }
+
+
+        // Update campaign table
+        function updateCampaignTable() {
+            const tableBody = document.querySelector('#campaignTable tbody');
+            tableBody.innerHTML = '';
+
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedData = filteredData.slice(startIndex, endIndex);
+
+            paginatedData.forEach(campaign => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-100 dark:hover:bg-gray-700';
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${campaign.AdID}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${campaign.Marketer}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${campaign['Traffic Source']}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${campaign.Link || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${formatCurrency(campaign['Cost VND'])}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${formatCurrency(campaign['Revenue VND'])}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${parseFloat(campaign.ROI).toFixed(2)}%</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            ${campaign.Status === 'Active' ? 'bg-green-100 text-green-800' :
+                        campaign.Status === 'Paused' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'}">
+                            ${campaign.Status}
+                        </span>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            updatePaginationControls();
+        }
+
+        function updatePaginationControls() {
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            document.getElementById('pageInfo').textContent = `Trang ${currentPage} / ${totalPages}`;
+
+            const prevButton = document.getElementById('prevPage');
+            const nextButton = document.getElementById('nextPage');
+
+            prevButton.disabled = currentPage === 1;
+            nextButton.disabled = currentPage === totalPages;
+
+            prevButton.classList.toggle('opacity-50', currentPage === 1);
+            nextButton.classList.toggle('opacity-50', currentPage === totalPages);
+        }
+
+        // Charts
+        function updateCharts() {
+            updateRevenueChart();
+            updateMarketerChart();
+            updateTrafficChart();
+            updateCVRChart();
+        }
+
+        // Chart update functions
+        function updateRevenueChart() {
+            const dailyData = filteredData.reduce((acc, item) => {
+                const date = item.Date.split(' ')[0];
+                if (!acc[date]) {
+                    acc[date] = { cost: 0, revenue: 0 };
+                }
+                acc[date].cost += parseFloat(item['Cost VND'] || 0);
+                acc[date].revenue += parseFloat(item['Revenue VND'] || 0);
+                return acc;
+            }, {});
+
+            const dates = Object.keys(dailyData).sort();
+            const costs = dates.map(date => dailyData[date].cost);
+            const revenues = dates.map(date => dailyData[date].revenue);
+
+            Highcharts.chart('revenueChart', {
+                chart: { type: 'line' },
+                title: { text: null },
+                xAxis: {
+                    categories: dates,
+                    labels: {
+                        rotation: -45
+                    }
+                },
+                yAxis: {
+                    title: { text: 'VND' },
+                    labels: {
+                        formatter: function () {
+                            return formatCurrency(this.value).replace(' ₫', '');
+                        }
+                    }
+                },
+                tooltip: {
+                    formatter: function () {
+                        return `<b>${this.series.name}</b><br/>
+                                Ngày: ${this.x}<br/>
+                                Giá trị: ${formatCurrency(this.y)}`;
+                    }
+                },
+                series: [
+                    {
+                        name: 'Chi phí',
+                        data: costs, color: '#EF4444'
+                    },
+                    {
+                        name: 'Doanh thu',
+                        data: revenues,
+                        color: '#10B981'
+                    }
+                ]
+            });
+        }
+
+        function updateMarketerChart() {
+            const marketerStats = filteredData.reduce((acc, item) => {
+                const marketer = item.Marketer;
+                if (!acc[marketer]) {
+                    acc[marketer] = { revenue: 0, profit: 0 };
+                }
+                acc[marketer].revenue += parseFloat(item['Revenue VND'] || 0);
+                acc[marketer].profit += parseFloat(item['Revenue VND'] || 0) - parseFloat(item['Cost VND'] || 0);
+                return acc;
+            }, {});
+
+            const chartData = Object.entries(marketerStats)
+                .map(([marketer, stats]) => ({
+                    name: marketer,
+                    revenue: stats.revenue,
+                    profit: stats.profit
+                }))
+                .sort((a, b) => b.revenue - a.revenue)
+                .slice(0, 5);
+
+            Highcharts.chart('marketerChart', {
+                chart: { type: 'column' },
+                title: { text: null },
+                xAxis: { categories: chartData.map(d => d.name) },
+                yAxis: {
+                    title: { text: 'VND' },
+                    labels: {
+                        formatter: function () {
+                            return formatCurrency(this.value).replace(' ₫', '');
+                        }
+                    }
+                },
+                tooltip: {
+                    formatter: function () {
+                        return `<b>${this.x}</b><br/>
+                                ${this.series.name}: ${formatCurrency(this.y)}`;
+                    }
+                },
+                series: [
+                    {
+                        name: 'Doanh thu',
+                        data: chartData.map(d => d.revenue),
+                        color: '#10B981'
+                    },
+                    {
+                        name: 'Lợi nhuận',
+                        data: chartData.map(d => d.profit),
+                        color: '#3B82F6'
+                    }
+                ]
+            });
+        }
+
+        function updateTrafficChart() {
+            const trafficStats = filteredData.reduce((acc, item) => {
+                const source = item['Traffic Source'] || 'Unknown';
+                if (!acc[source]) {
+                    acc[source] = {
+                        cost: 0,
+                        clicks: parseFloat(item['Click1'] || 0)
+                    };
+                }
+                acc[source].cost += parseFloat(item['Cost VND'] || 0);
+                acc[source].clicks += parseFloat(item['Click1'] || 0);
+                return acc;
+            }, {});
+
+            const chartData = Object.entries(trafficStats).map(([source, stats]) => ({
+                name: source,
+                y: stats.cost,
+                clicks: stats.clicks
+            }));
+
+            Highcharts.chart('trafficChart', {
+                chart: { type: 'pie' },
+                title: { text: null },
+                plotOptions: {
+                    pie: {
+                        allowPointSelect: true,
+                        cursor: 'pointer',
+                        dataLabels: {
+                            enabled: true,
+                            format: '<b>{point.name}</b>: {point.percentage:.1f}%'
+                        }
+                    }
+                },
+                tooltip: {
+                    formatter: function () {
+                        return `<b>${this.point.name}</b><br/>
+                                Chi phí: ${formatCurrency(this.point.y)}<br/>
+                                Clicks: ${this.point.clicks}`;
+                    }
+                },
+                series: [{
+                    name: 'Chi phí',
+                    colorByPoint: true,
+                    data: chartData
+                }]
+            });
+        }
+
+        function updateCVRChart() {
+            const cvrData = filteredData.reduce((acc, item) => {
+                const date = item.Date.split(' ')[0];
+                if (!acc[date]) {
+                    acc[date] = {
+                        clicks: 0,
+                        conversions: 0
+                    };
+                }
+                acc[date].clicks += parseFloat(item['Click1'] || 0);
+                acc[date].conversions += parseFloat(item['CVR'] || 0) * parseFloat(item['Click1'] || 0) / 100;
+                return acc;
+            }, {});
+
+            const dates = Object.keys(cvrData).sort();
+            const cvrs = dates.map(date => {
+                const { clicks, conversions } = cvrData[date];
+                return clicks ? (conversions / clicks * 100) : 0;
+            });
+
+            Highcharts.chart('cvrChart', {
+                chart: { type: 'spline' },
+                title: { text: null },
+                xAxis: {
+                    categories: dates,
+                    labels: {
+                        rotation: -45
+                    }
+                },
+                yAxis: {
+                    title: { text: 'CVR (%)' },
+                    labels: { format: '{value}%' }
+                },
+                tooltip: {
+                    formatter: function () {
+                        return `<b>Ngày: ${this.x}</b><br/>
+                                CVR: ${this.y.toFixed(2)}%`;
+                    }
+                },
+                series: [{
+                    name: 'CVR',
+                    data: cvrs,
+                    color: '#8B5CF6'
+                }]
+            });
+        }
+
+        // Export function
+        function exportToExcel() {
+            const headers = ['AdID', 'Marketer', 'Traffic Source', 'Link', 'Date', 'Cost VND', 'Revenue VND', 'ROI', 'Status'];
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += headers.join(",") + "\n";
+
+            filteredData.forEach(item => {
+                const row = [
+                    item.AdID,
+                    item.Marketer,
+                    item['Traffic Source'],
+                    item.Link || '',
+                    item.Date,
+                    item['Cost VND'],
+                    item['Revenue VND'],
+                    item.ROI,
+                    item.Status
+                ];
+                csvContent += row.join(",") + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `ads_report_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Event Listeners
+        function setupEventListeners() {
+            // Date filter events
+            document.getElementById('dateFilter').addEventListener('change', function (e) {
+                const customDateRange = document.getElementById('customDateRange');
+                if (e.target.value === 'custom') {
+                    customDateRange.classList.remove('hidden');
+                } else {
+                    customDateRange.classList.add('hidden');
+                    applyFilters();
+                }
+            });
+
+            // Filter events
+            document.getElementById('marketerFilter').addEventListener('change', applyFilters);
+            document.getElementById('trafficSourceFilter').addEventListener('change', applyFilters);
+            document.getElementById('statusFilter').addEventListener('change', applyFilters);
+            document.getElementById('linkFilter').addEventListener('input', debounce(applyFilters, 300));
+            document.getElementById('startDate').addEventListener('change', applyFilters);
+            document.getElementById('endDate').addEventListener('change', applyFilters);
+
+            // Filter buttons
+            document.getElementById('applyFilters').addEventListener('click', applyFilters);
+            document.getElementById('resetFilters').addEventListener('click', resetFilters);
+
+            // Pagination
+            document.getElementById('prevPage').addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    updateCampaignTable();
+                }
+            });
+
+            document.getElementById('nextPage').addEventListener('click', () => {
+                const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    updateCampaignTable();
+                }
+            });
+
+            // Search
+            document.getElementById('campaignSearch').addEventListener('input', debounce((e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                filteredData = allData.filter(campaign =>
+                    campaign.AdID.toLowerCase().includes(searchTerm) ||
+                    campaign.Marketer.toLowerCase().includes(searchTerm) ||
+                    campaign['Traffic Source'].toLowerCase().includes(searchTerm) ||
+                    (campaign.Link || '').toLowerCase().includes(searchTerm) ||
+                    campaign.Status.toLowerCase().includes(searchTerm)
+                );
+                currentPage = 1;
+                updateDashboard();
+            }, 300));
+
+            // Export
+            document.getElementById('exportData').addEventListener('click', exportToExcel);
+
+            // Dark mode
+            document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
+        }
+
+        // Reset filters
+        function resetFilters() {
+            document.getElementById('marketerFilter').value = '';
+            document.getElementById('trafficSourceFilter').value = '';
+            document.getElementById('dateFilter').value = '7';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('linkFilter').value = '';
+            document.getElementById('customDateRange').classList.add('hidden');
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+
+            filteredData = allData;
+            currentPage = 1;
+            updateDashboard();
+        }
+
+        // Dark mode functions
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            updateDarkModeIcon();
+            updateCharts();
+            localStorage.setItem('darkMode', document.documentElement.classList.contains('dark'));
+        }
+
+        function updateDarkModeIcon() {
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            darkModeToggle.innerHTML = isDarkMode
+                ? '<i class="fas fa-sun text-yellow-300"></i>'
+                : '<i class="fas fa-moon text-gray-800"></i>';
+        }
+
+        // Utility function for debouncing
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchData();
+            setupEventListeners();
+
+            // Check for saved dark mode preference
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.documentElement.classList.add('dark');
+                updateDarkModeIcon();
+            }
+        });
+    </script>
+</body>
+
+</html>
