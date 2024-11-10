@@ -259,6 +259,12 @@
                 </div>
             </div>
 
+            <div class="grid grid-cols-1 gap-8 mb-8">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <div id="adPerformanceChart"></div>
+                </div>
+            </div>
+
             <!-- Data Table -->
             <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
                 <div class="flex justify-between items-center mb-4">
@@ -380,23 +386,183 @@
                 console.error("Error fetching data:", error);
             }
         }
+        // Thêm hàm tính toán dữ liệu cùng kỳ
+        function calculatePreviousPeriodData(currentData) {
+            if (!currentData || currentData.length === 0) return [];
 
-        // Update dashboard metrics
+            // Lấy thời gian từ select box
+            const dateRange = document.getElementById('dateFilter').value;
+
+            const currentStartDate = new Date(Math.min(...currentData.map(item => new Date(item.Date))));
+            const currentEndDate = new Date(Math.max(...currentData.map(item => new Date(item.Date))));
+
+            let previousStartDate, previousEndDate;
+
+            // Tính khoảng thời gian cho kỳ trước dựa vào dateRange
+            switch (dateRange) {
+                case '7':
+                    previousStartDate = new Date(currentStartDate);
+                    previousStartDate.setDate(previousStartDate.getDate() - 7);
+                    previousEndDate = new Date(currentEndDate);
+                    previousEndDate.setDate(previousEndDate.getDate() - 7);
+                    break;
+                case '30':
+                    previousStartDate = new Date(currentStartDate);
+                    previousStartDate.setDate(previousStartDate.getDate() - 30);
+                    previousEndDate = new Date(currentEndDate);
+                    previousEndDate.setDate(previousEndDate.getDate() - 30);
+                    break;
+                case '90':
+                    previousStartDate = new Date(currentStartDate);
+                    previousStartDate.setDate(previousStartDate.getDate() - 90);
+                    previousEndDate = new Date(currentEndDate);
+                    previousEndDate.setDate(previousEndDate.getDate() - 90);
+                    break;
+                case 'custom':
+                    const startDate = new Date(document.getElementById('startDate').value);
+                    const endDate = new Date(document.getElementById('endDate').value);
+                    const daysDiff = (endDate - startDate) / (1000 * 60 * 60 * 24);
+                    previousStartDate = new Date(startDate);
+                    previousStartDate.setDate(previousStartDate.getDate() - daysDiff);
+                    previousEndDate = new Date(startDate);
+                    previousEndDate.setDate(previousEndDate.getDate() - 1);
+                    break;
+                default:
+                    // Trường hợp 'all' hoặc không xác định, lấy kỳ trước bằng với khoảng thời gian hiện tại
+                    const periodLength = (currentEndDate - currentStartDate) / (1000 * 60 * 60 * 24);
+                    previousStartDate = new Date(currentStartDate);
+                    previousStartDate.setDate(previousStartDate.getDate() - periodLength);
+                    previousEndDate = new Date(currentEndDate);
+                    previousEndDate.setDate(previousEndDate.getDate() - periodLength);
+            }
+
+            // Lọc dữ liệu của kỳ trước
+            return allData.filter(item => {
+                const itemDate = new Date(item.Date);
+                return itemDate >= previousStartDate && itemDate <= previousEndDate;
+            });
+        }
+
+        // Cập nhật hàm updateDashboard để thêm thông tin so sánh
         function updateDashboard() {
-            // Update KPI cards
-            const totalCostValue = filteredData.reduce((sum, item) => sum + parseFloat(item['Cost VND'] || 0), 0);
-            const totalRevenueValue = filteredData.reduce((sum, item) => sum + parseFloat(item['Revenue VND'] || 0), 0);
-            const totalProfitValue = totalRevenueValue - totalCostValue;
-            const averageROIValue = (totalProfitValue / totalCostValue * 100) || 0;
+            if (!filteredData.length) {
+                document.getElementById('totalCost').innerHTML = formatCurrency(0);
+                document.getElementById('totalRevenue').innerHTML = formatCurrency(0);
+                document.getElementById('totalProfit').innerHTML = formatCurrency(0);
+                document.getElementById('averageROI').innerHTML = '0%';
+                return;
+            }
 
-            document.getElementById('totalCost').textContent = formatCurrency(totalCostValue);
-            document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenueValue);
-            document.getElementById('totalProfit').textContent = formatCurrency(totalProfitValue);
-            document.getElementById('averageROI').textContent = `${averageROIValue.toFixed(2)}%`;
+            const previousPeriodData = calculatePreviousPeriodData(filteredData);
 
+            // Tính toán metrics cho kỳ hiện tại
+            const currentMetrics = {
+                cost: filteredData.reduce((sum, item) => sum + parseFloat(item['Cost VND'] || 0), 0),
+                revenue: filteredData.reduce((sum, item) => sum + parseFloat(item['Revenue VND'] || 0), 0)
+            };
+            currentMetrics.profit = currentMetrics.revenue - currentMetrics.cost;
+            currentMetrics.roi = currentMetrics.cost ? (currentMetrics.profit / currentMetrics.cost * 100) : 0;
+
+            // Tính toán metrics cho kỳ trước
+            const previousMetrics = {
+                cost: previousPeriodData.reduce((sum, item) => sum + parseFloat(item['Cost VND'] || 0), 0),
+                revenue: previousPeriodData.reduce((sum, item) => sum + parseFloat(item['Revenue VND'] || 0), 0)
+            };
+            previousMetrics.profit = previousMetrics.revenue - previousMetrics.cost;
+            previousMetrics.roi = previousMetrics.cost ? (previousMetrics.profit / previousMetrics.cost * 100) : 0;
+
+            // Tính phần trăm thay đổi
+            const changes = {
+                cost: previousMetrics.cost ? ((currentMetrics.cost - previousMetrics.cost) / previousMetrics.cost * 100) : 0,
+                revenue: previousMetrics.revenue ? ((currentMetrics.revenue - previousMetrics.revenue) / previousMetrics.revenue * 100) : 0,
+                profit: previousMetrics.profit ? ((currentMetrics.profit - previousMetrics.profit) / previousMetrics.profit * 100) : 0,
+                roi: previousMetrics.roi ? (currentMetrics.roi - previousMetrics.roi) : 0
+            };
+
+            // Update UI với thông tin chi tiết
+            document.getElementById('totalCost').innerHTML = `
+        <div class="flex flex-col">
+            <span class="text-3xl font-bold text-red-500">${formatCurrency(currentMetrics.cost)}</span>
+            <div class="flex items-center text-sm mt-1 ${changes.cost > 0 ? 'text-red-500' : 'text-green-500'}">
+                <span class="mr-1">${changes.cost !== 0 ? (changes.cost > 0 ? '▲' : '▼') : '='}</span>
+                <span>${Math.abs(changes.cost).toFixed(1)}% so với kỳ trước</span>
+            </div>
+            <div class="text-xs text-gray-500">Kỳ trước: ${formatCurrency(previousMetrics.cost)}</div>
+        </div>
+    `;
+
+            document.getElementById('totalRevenue').innerHTML = `
+        <div class="flex flex-col">
+            <span class="text-3xl font-bold text-green-500">${formatCurrency(currentMetrics.revenue)}</span>
+            <div class="flex items-center text-sm mt-1 ${changes.revenue > 0 ? 'text-green-500' : 'text-red-500'}">
+                <span class="mr-1">${changes.revenue !== 0 ? (changes.revenue > 0 ? '▲' : '▼') : '='}</span>
+                <span>${Math.abs(changes.revenue).toFixed(1)}% so với kỳ trước</span>
+            </div>
+            <div class="text-xs text-gray-500">Kỳ trước: ${formatCurrency(previousMetrics.revenue)}</div>
+        </div>
+    `;
+
+            document.getElementById('totalProfit').innerHTML = `
+        <div class="flex flex-col">
+            <span class="text-3xl font-bold text-blue-500">${formatCurrency(currentMetrics.profit)}</span>
+            <div class="flex items-center text-sm mt-1 ${changes.profit > 0 ? 'text-green-500' : 'text-red-500'}">
+                <span class="mr-1">${changes.profit !== 0 ? (changes.profit > 0 ? '▲' : '▼') : '='}</span>
+                <span>${Math.abs(changes.profit).toFixed(1)}% so với kỳ trước</span>
+            </div>
+            <div class="text-xs text-gray-500">Kỳ trước: ${formatCurrency(previousMetrics.profit)}</div>
+        </div>
+    `;
+
+            document.getElementById('averageROI').innerHTML = `
+        <div class="flex flex-col">
+            <span class="text-3xl font-bold text-purple-500">${currentMetrics.roi.toFixed(2)}%</span>
+            <div class="flex items-center text-sm mt-1 ${changes.roi > 0 ? 'text-green-500' : 'text-red-500'}">
+                <span class="mr-1">${changes.roi !== 0 ? (changes.roi > 0 ? '▲' : '▼') : '='}</span>
+                <span>${Math.abs(changes.roi).toFixed(1)} điểm % so với kỳ trước</span>
+            </div>
+            <div class="text-xs text-gray-500">Kỳ trước: ${previousMetrics.roi.toFixed(2)}%</div>
+        </div>
+    `;
+
+            // Update charts và table
             updateCharts();
             updateCampaignTable();
+
+            // Thêm tooltip cho các metrics cards
+            const tooltips = {
+                totalCost: `
+            Kỳ hiện tại: ${formatCurrency(currentMetrics.cost)}
+            Kỳ trước: ${formatCurrency(previousMetrics.cost)}
+            Thay đổi: ${changes.cost > 0 ? '+' : ''}${changes.cost.toFixed(1)}%
+        `,
+                totalRevenue: `
+            Kỳ hiện tại: ${formatCurrency(currentMetrics.revenue)}
+            Kỳ trước: ${formatCurrency(previousMetrics.revenue)}
+            Thay đổi: ${changes.revenue > 0 ? '+' : ''}${changes.revenue.toFixed(1)}%
+        `,
+                totalProfit: `
+            Kỳ hiện tại: ${formatCurrency(currentMetrics.profit)}
+            Kỳ trước: ${formatCurrency(previousMetrics.profit)}
+            Thay đổi: ${changes.profit > 0 ? '+' : ''}${changes.profit.toFixed(1)}%
+        `,
+                averageROI: `
+            Kỳ hiện tại: ${currentMetrics.roi.toFixed(2)}%
+            Kỳ trước: ${previousMetrics.roi.toFixed(2)}%
+            Thay đổi: ${changes.roi > 0 ? '+' : ''}${changes.roi.toFixed(1)} điểm %
+        `
+            };
+
+            // Thêm title attribute cho tooltips
+            Object.keys(tooltips).forEach(id => {
+                document.getElementById(id).setAttribute('title', tooltips[id]);
+            });
+
+            // Thêm class để xử lý hover effect
+            document.querySelectorAll('.metric-card').forEach(card => {
+                card.classList.add('hover:shadow-lg', 'transition-shadow', 'duration-300');
+            });
         }
+
 
         // Filter functions
         function populateFilters() {
@@ -478,6 +644,292 @@
             return itemDate >= rangeDate;
         }
 
+        function createAdPerformanceChart() {
+            // Tổng hợp dữ liệu theo Marketer
+            const marketerMetrics = filteredData.reduce((acc, item) => {
+                const marketer = item.Marketer;
+                if (!acc[marketer]) {
+                    acc[marketer] = {
+                        click1: 0,
+                        click3: 0,
+                        revenue: 0
+                    };
+                }
+                acc[marketer].click1 += parseFloat(item.Click1 || 0);
+                acc[marketer].click3 += parseFloat(item.Click3 || 0);
+                acc[marketer].revenue += parseFloat(item.Revenue || 0);
+                return acc;
+            }, {});
+
+            // Chuyển đổi và sắp xếp dữ liệu theo Revenue
+            const chartData = Object.entries(marketerMetrics)
+                .map(([marketer, metrics]) => ({
+                    marketer: marketer,
+                    click1: metrics.click1,
+                    click3: metrics.click3,
+                    revenue: metrics.revenue
+                }))
+                .sort((a, b) => b.revenue - a.revenue) // Sắp xếp theo doanh thu
+                .slice(0, 10); // Lấy top 10 Marketer
+
+            // Tạo biểu đồ
+            Highcharts.chart('adPerformanceChart', {
+                chart: {
+                    type: 'column',
+                    backgroundColor: document.documentElement.classList.contains('dark') ? '#1F2937' : '#FFFFFF',
+                    height: 500
+                },
+                title: {
+                    text: 'Hiệu suất theo Marketer',
+                    style: {
+                        color: document.documentElement.classList.contains('dark') ? '#D1D5DB' : '#374151'
+                    }
+                },
+                xAxis: {
+                    categories: chartData.map(item => item.marketer),
+                    labels: {
+                        rotation: -45,
+                        style: {
+                            color: document.documentElement.classList.contains('dark') ? '#D1D5DB' : '#374151'
+                        }
+                    }
+                },
+                yAxis: [{
+                    // Trục cho Clicks
+                    title: {
+                        text: 'Số lượng Clicks',
+                        style: {
+                            color: document.documentElement.classList.contains('dark') ? '#D1D5DB' : '#374151'
+                        }
+                    },
+                    labels: {
+                        style: {
+                            color: document.documentElement.classList.contains('dark') ? '#D1D5DB' : '#374151'
+                        }
+                    }
+                }, {
+                    // Trục cho Revenue
+                    title: {
+                        text: 'Revenue',
+                        style: {
+                            color: document.documentElement.classList.contains('dark') ? '#D1D5DB' : '#374151'
+                        }
+                    },
+                    opposite: true,
+                    labels: {
+                        style: {
+                            color: document.documentElement.classList.contains('dark') ? '#D1D5DB' : '#374151'
+                        },
+                        formatter: function () {
+                            return this.value.toFixed(2);
+                        }
+                    }
+                }],
+                tooltip: {
+                    shared: true,
+                    formatter: function () {
+                        return `<b>Marketer: ${this.x}</b><br/>` +
+                            `Click1: ${Highcharts.numberFormat(this.points[0].y, 0)}<br/>` +
+                            `Click3: ${Highcharts.numberFormat(this.points[1].y, 0)}<br/>` +
+                            `Revenue: ${Highcharts.numberFormat(this.points[2].y, 2)}`;
+                    }
+                },
+                plotOptions: {
+                    column: {
+                        grouping: true,
+                        shadow: false,
+                        borderWidth: 0
+                    },
+                    series: {
+                        animation: {
+                            duration: 1000
+                        }
+                    }
+                },
+                series: [{
+                    name: 'Click1',
+                    color: '#60A5FA',
+                    data: chartData.map(item => item.click1),
+                    type: 'column'
+                }, {
+                    name: 'Click3',
+                    color: '#34D399',
+                    data: chartData.map(item => item.click3),
+                    type: 'column'
+                }, {
+                    name: 'Revenue',
+                    color: '#F87171',
+                    data: chartData.map(item => item.revenue),
+                    type: 'spline',
+                    yAxis: 1,
+                    marker: {
+                        lineWidth: 2,
+                        lineColor: '#F87171',
+                        fillColor: 'white'
+                    }
+                }],
+                legend: {
+                    itemStyle: {
+                        color: document.documentElement.classList.contains('dark') ? '#D1D5DB' : '#374151'
+                    }
+                },
+                credits: {
+                    enabled: false
+                }
+            });
+        }
+
+        function updateEnhancedCvrChart() {
+            // Calculate daily metrics
+            const dailyMetrics = filteredData.reduce((acc, item) => {
+                const date = item.Date;
+                if (!acc[date]) {
+                    acc[date] = {
+                        conversions: 0,
+                        clicks: 0,
+                        metrics: {
+                            cvr: 0,
+                            cpa: 0,
+                            rpc: 0,
+                            cost: 0
+                        }
+                    };
+                }
+                // Sử dụng trực tiếp các giá trị số thập phân
+                acc[date].metrics.cvr = parseFloat(item.CVR || 0);
+                acc[date].metrics.cpa = parseFloat(item.CPA || 0);
+                acc[date].metrics.rpc = parseFloat(item.RPC || 0);
+                acc[date].metrics.cost = parseFloat(item.Cost || 0);
+                acc[date].clicks = parseFloat(item.Click1 || 0);
+                return acc;
+            }, {});
+
+            // Transform data for the chart
+            const chartData = Object.entries(dailyMetrics)
+                .map(([date, data]) => ({
+                    date: date,
+                    cvr: data.metrics.cvr,
+                    cpa: data.metrics.cpa,
+                    rpc: data.metrics.rpc,
+                    cost: data.metrics.cost,
+                    clicks: data.clicks
+                }))
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            // Calculate moving averages
+            const movingAverages = calculateMovingAverages(chartData, 7);
+
+            // Create the chart
+            Highcharts.chart('cvrChart', {
+                chart: {
+                    type: 'line',
+                    backgroundColor: document.documentElement.classList.contains('dark') ? '#1F2937' : '#FFFFFF'
+                },
+                title: { text: null },
+                xAxis: {
+                    categories: chartData.map(item => item.date),
+                    labels: {
+                        rotation: -45,
+                        style: {
+                            color: document.documentElement.classList.contains('dark') ? '#D1D5DB' : '#374151'
+                        }
+                    }
+                },
+                yAxis: [{
+                    title: {
+                        text: 'Conversion Rate (%)',
+                        style: {
+                            color: document.documentElement.classList.contains('dark') ? '#D1D5DB' : '#374151'
+                        }
+                    },
+                    labels: {
+                        format: '{value:.2f}%',
+                        style: {
+                            color: document.documentElement.classList.contains('dark') ? '#D1D5DB' : '#374151'
+                        }
+                    }
+                }, {
+                    title: {
+                        text: 'Metrics',
+                        style: {
+                            color: document.documentElement.classList.contains('dark') ? '#D1D5DB' : '#374151'
+                        }
+                    },
+                    opposite: true,
+                    labels: {
+                        format: '{value:.2f}',
+                        style: {
+                            color: document.documentElement.classList.contains('dark') ? '#D1D5DB' : '#374151'
+                        }
+                    }
+                }],
+                tooltip: {
+                    shared: true,
+                    formatter: function () {
+                        const point = chartData[this.points[0].point.index];
+                        return `<b>${this.x}</b><br/>
+                    CVR: ${point.cvr.toFixed(2)}%<br/>
+                    Clicks: ${point.clicks}<br/>
+                    CPA: ${point.cpa.toFixed(2)}<br/>
+                    RPC: ${point.rpc.toFixed(2)}<br/>
+                    Cost: ${point.cost.toFixed(2)}<br/>
+                    7-Day Avg CVR: ${movingAverages[this.x]?.toFixed(2) || 0}%`;
+                    }
+                },
+                legend: {
+                    itemStyle: {
+                        color: document.documentElement.classList.contains('dark') ? '#D1D5DB' : '#374151'
+                    }
+                },
+                series: [{
+                    name: 'Daily CVR',
+                    data: chartData.map(item => item.cvr),
+                    color: '#60A5FA',
+                    tooltip: {
+                        valueDecimals: 2,
+                        valueSuffix: '%'
+                    }
+                }, {
+                    name: '7-Day Moving Average',
+                    data: Object.values(movingAverages),
+                    color: '#34D399',
+                    lineWidth: 2,
+                    marker: { radius: 0 }
+                }, {
+                    name: 'CPA',
+                    data: chartData.map(item => item.cpa),
+                    yAxis: 1,
+                    color: '#F87171',
+                    visible: false
+                }, {
+                    name: 'RPC',
+                    data: chartData.map(item => item.rpc),
+                    yAxis: 1,
+                    color: '#10B981',
+                    visible: false
+                }, {
+                    name: 'Cost',
+                    data: chartData.map(item => item.cost),
+                    yAxis: 1,
+                    color: '#9333EA',
+                    visible: false
+                }]
+            });
+        }
+
+        // Helper function for calculating moving averages
+        function calculateMovingAverages(data, period) {
+            const averages = {};
+            for (let i = 0; i < data.length; i++) {
+                if (i >= period - 1) {
+                    const slice = data.slice(i - period + 1, i + 1);
+                    const average = slice.reduce((sum, item) => sum + item.cvr, 0) / period;
+                    averages[data[i].date] = average;
+                }
+            }
+            return averages;
+        }
+
 
         // Update campaign table
         function updateCampaignTable() {
@@ -533,58 +985,73 @@
             updateRevenueChart();
             updateMarketerChart();
             updateTrafficChart();
-            updateCVRChart();
+            updateEnhancedCvrChart();
+            createAdPerformanceChart();
         }
 
         // Chart update functions
         function updateRevenueChart() {
-            const dailyData = filteredData.reduce((acc, item) => {
+            const previousPeriodData = calculatePreviousPeriodData(filteredData);
+
+            // Xử lý dữ liệu hiện tại
+            const currentDailyData = filteredData.reduce((acc, item) => {
                 const date = item.Date.split(' ')[0];
-                if (!acc[date]) {
-                    acc[date] = { cost: 0, revenue: 0 };
-                }
+                if (!acc[date]) acc[date] = { cost: 0, revenue: 0 };
                 acc[date].cost += parseFloat(item['Cost VND'] || 0);
                 acc[date].revenue += parseFloat(item['Revenue VND'] || 0);
                 return acc;
             }, {});
 
-            const dates = Object.keys(dailyData).sort();
-            const costs = dates.map(date => dailyData[date].cost);
-            const revenues = dates.map(date => dailyData[date].revenue);
+            // Xử lý dữ liệu kỳ trước
+            const previousDailyData = previousPeriodData.reduce((acc, item) => {
+                const date = item.Date.split(' ')[0];
+                if (!acc[date]) acc[date] = { cost: 0, revenue: 0 };
+                acc[date].cost += parseFloat(item['Cost VND'] || 0);
+                acc[date].revenue += parseFloat(item['Revenue VND'] || 0);
+                return acc;
+            }, {});
 
+            // Cấu hình biểu đồ với thêm series cho kỳ trước
             Highcharts.chart('revenueChart', {
                 chart: { type: 'line' },
                 title: { text: null },
                 xAxis: {
-                    categories: dates,
-                    labels: {
-                        rotation: -45
-                    }
+                    categories: Object.keys(currentDailyData).sort(),
+                    labels: { rotation: -45 }
                 },
                 yAxis: {
-                    title: { text: 'VND' },
+                    title: { text: null },
                     labels: {
                         formatter: function () {
-                            return formatCurrency(this.value).replace(' ₫', '');
+                            if (this.value >= 1000000000) return (this.value / 1000000000) + 'B';
+                            if (this.value >= 1000000) return (this.value / 1000000) + 'M';
+                            if (this.value >= 1000) return (this.value / 1000) + 'K';
+                            return this.value;
                         }
-                    }
-                },
-                tooltip: {
-                    formatter: function () {
-                        return `<b>${this.series.name}</b><br/>
-                                Ngày: ${this.x}<br/>
-                                Giá trị: ${formatCurrency(this.y)}`;
                     }
                 },
                 series: [
                     {
                         name: 'Chi phí',
-                        data: costs, color: '#EF4444'
+                        data: Object.values(currentDailyData).map(d => d.cost),
+                        color: '#EF4444'
                     },
                     {
                         name: 'Doanh thu',
-                        data: revenues,
+                        data: Object.values(currentDailyData).map(d => d.revenue),
                         color: '#10B981'
+                    },
+                    {
+                        name: 'Chi phí (Kỳ trước)',
+                        data: Object.values(previousDailyData).map(d => d.cost),
+                        color: '#FCA5A5',
+                        dashStyle: 'shortdash'
+                    },
+                    {
+                        name: 'Doanh thu (Kỳ trước)',
+                        data: Object.values(previousDailyData).map(d => d.revenue),
+                        color: '#6EE7B7',
+                        dashStyle: 'shortdash'
                     }
                 ]
             });
@@ -613,19 +1080,34 @@
             Highcharts.chart('marketerChart', {
                 chart: { type: 'column' },
                 title: { text: null },
-                xAxis: { categories: chartData.map(d => d.name) },
+                xAxis: {
+                    categories: chartData.map(d => d.name),
+                    labels: {
+                        style: {
+                            fontSize: '11px'
+                        }
+                    }
+                },
                 yAxis: {
-                    title: { text: 'VND' },
+                    title: { text: null },  // Removed VND label
                     labels: {
                         formatter: function () {
-                            return formatCurrency(this.value).replace(' ₫', '');
+                            // Format numbers in millions/billions without VND
+                            if (this.value >= 1000000000) {
+                                return (this.value / 1000000000).toFixed(1) + 'B';
+                            } else if (this.value >= 1000000) {
+                                return (this.value / 1000000).toFixed(1) + 'M';
+                            } else if (this.value >= 1000) {
+                                return (this.value / 1000).toFixed(1) + 'K';
+                            }
+                            return this.value;
                         }
                     }
                 },
                 tooltip: {
                     formatter: function () {
                         return `<b>${this.x}</b><br/>
-                                ${this.series.name}: ${formatCurrency(this.y)}`;
+                        ${this.series.name}: ${formatCurrency(this.y)}`;
                     }
                 },
                 series: [
@@ -644,27 +1126,50 @@
         }
 
         function updateTrafficChart() {
+            // Tính tổng traffic từ mỗi nguồn
             const trafficStats = filteredData.reduce((acc, item) => {
                 const source = item['Traffic Source'] || 'Unknown';
                 if (!acc[source]) {
                     acc[source] = {
-                        cost: 0,
-                        clicks: parseFloat(item['Click1'] || 0)
+                        traffic: 0,
+                        cost: parseFloat(item['Cost VND'] || 0),
+                        conversions: parseFloat(item['Conversions'] || 0)
                     };
                 }
+                // Sử dụng Click1 làm lượng traffic
+                acc[source].traffic += parseFloat(item['Click1'] || 0);
                 acc[source].cost += parseFloat(item['Cost VND'] || 0);
-                acc[source].clicks += parseFloat(item['Click1'] || 0);
+                acc[source].conversions += parseFloat(item['Conversions'] || 0);
                 return acc;
             }, {});
 
-            const chartData = Object.entries(trafficStats).map(([source, stats]) => ({
-                name: source,
-                y: stats.cost,
-                clicks: stats.clicks
-            }));
+            // Chuyển đổi dữ liệu cho biểu đồ
+            const chartData = Object.entries(trafficStats)
+                .map(([source, stats]) => ({
+                    name: source,
+                    y: stats.traffic, // Sử dụng lượng traffic làm giá trị chính
+                    percentage: 0, // Sẽ được tính toán sau
+                    cost: stats.cost,
+                    conversions: stats.conversions
+                }));
 
+            // Tính tổng traffic
+            const totalTraffic = chartData.reduce((sum, item) => sum + item.y, 0);
+
+            // Tính phần trăm cho mỗi nguồn
+            chartData.forEach(item => {
+                item.percentage = (item.y / totalTraffic * 100);
+            });
+
+            // Sắp xếp theo lượng traffic từ cao đến thấp
+            chartData.sort((a, b) => b.y - a.y);
+
+            // Cấu hình biểu đồ
             Highcharts.chart('trafficChart', {
-                chart: { type: 'pie' },
+                chart: {
+                    type: 'pie',
+                    backgroundColor: document.documentElement.classList.contains('dark') ? '#1F2937' : '#FFFFFF'
+                },
                 title: { text: null },
                 plotOptions: {
                     pie: {
@@ -672,72 +1177,29 @@
                         cursor: 'pointer',
                         dataLabels: {
                             enabled: true,
-                            format: '<b>{point.name}</b>: {point.percentage:.1f}%'
+                            format: '<b>{point.name}</b>: {point.percentage:.1f}%',
+                            style: {
+                                color: document.documentElement.classList.contains('dark') ? '#FFFFFF' : '#000000'
+                            }
                         }
                     }
                 },
                 tooltip: {
                     formatter: function () {
                         return `<b>${this.point.name}</b><br/>
-                                Chi phí: ${formatCurrency(this.point.y)}<br/>
-                                Clicks: ${this.point.clicks}`;
+                        Traffic: ${Math.round(this.point.y).toLocaleString()} clicks<br/>
+                        Tỷ lệ: ${this.point.percentage.toFixed(1)}%<br/>
+                        Chi phí: ${formatCurrency(this.point.cost)}<br/>
+                        Conversions: ${this.point.conversions}`;
                     }
                 },
                 series: [{
-                    name: 'Chi phí',
+                    name: 'Traffic Source',
                     colorByPoint: true,
                     data: chartData
                 }]
             });
         }
-
-        function updateCVRChart() {
-            const cvrData = filteredData.reduce((acc, item) => {
-                const date = item.Date.split(' ')[0];
-                if (!acc[date]) {
-                    acc[date] = {
-                        clicks: 0,
-                        conversions: 0
-                    };
-                }
-                acc[date].clicks += parseFloat(item['Click1'] || 0);
-                acc[date].conversions += parseFloat(item['CVR'] || 0) * parseFloat(item['Click1'] || 0) / 100;
-                return acc;
-            }, {});
-
-            const dates = Object.keys(cvrData).sort();
-            const cvrs = dates.map(date => {
-                const { clicks, conversions } = cvrData[date];
-                return clicks ? (conversions / clicks * 100) : 0;
-            });
-
-            Highcharts.chart('cvrChart', {
-                chart: { type: 'spline' },
-                title: { text: null },
-                xAxis: {
-                    categories: dates,
-                    labels: {
-                        rotation: -45
-                    }
-                },
-                yAxis: {
-                    title: { text: 'CVR (%)' },
-                    labels: { format: '{value}%' }
-                },
-                tooltip: {
-                    formatter: function () {
-                        return `<b>Ngày: ${this.x}</b><br/>
-                                CVR: ${this.y.toFixed(2)}%`;
-                    }
-                },
-                series: [{
-                    name: 'CVR',
-                    data: cvrs,
-                    color: '#8B5CF6'
-                }]
-            });
-        }
-
         // Export function
         function exportToExcel() {
             const headers = ['AdID', 'Marketer', 'Traffic Source', 'Link', 'Date', 'Cost VND', 'Revenue VND', 'ROI', 'Status'];
@@ -835,7 +1297,7 @@
         function resetFilters() {
             document.getElementById('marketerFilter').value = '';
             document.getElementById('trafficSourceFilter').value = '';
-            document.getElementById('dateFilter').value = '7';
+            document.getElementById('dateFilter').value = 'all';
             document.getElementById('statusFilter').value = '';
             document.getElementById('linkFilter').value = '';
             document.getElementById('customDateRange').classList.add('hidden');
