@@ -463,6 +463,12 @@
                 padding: 0 !important;
             }
 
+            @page {
+                size:  105mm 70mm landscape;
+                /* Bỏ landscape, đổi kích thước */
+                margin: 0;
+            }
+
             /* Trang in 105x70mm - 3 tem ngang */
             .label-page-horizontal {
                 width: 105mm;
@@ -577,11 +583,12 @@
                 text-align: center;
             }
 
-            @page {
-                size: 70mm 105mm;
-                /* Bỏ landscape, đổi kích thước */
-                margin: 0;
-            }
+
+
+
+
+
+
         }
 
         .loading-overlay {
